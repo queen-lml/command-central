@@ -75,6 +75,8 @@
     });
   }
 
+  var _g = window.CC_DATA && window.CC_DATA.generated;
+  if (_g) { var _f = document.querySelector('footer'); if (_f) _f.insertAdjacentHTML('beforeend', ' &middot; updated ' + _g); }
   window.addEventListener('hashchange', render);
   render();
 })();
