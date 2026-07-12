@@ -102,12 +102,13 @@ window.CC_DATA = {
         },
         {
           "name": "Hearthstone Restoration",
-          "status": "Planned",
-          "ok": false,
-          "summary": "Captions engine planned; blog once their site is live.",
+          "status": "Live",
+          "ok": true,
+          "summary": "Captions engine live from their intake; blog once their WP site is done.",
           "details": [
-            "Captions from their intake forms",
-            "Blog once WP + service pages finish"
+            "Voice + profile built; captions, hooks, subhooks live",
+            "DM triggers + free drone-inspection offer locked in",
+            "Blog queued for when WP + service pages finish"
           ]
         },
         {
