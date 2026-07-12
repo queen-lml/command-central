@@ -102,12 +102,14 @@ window.CC_DATA = {
         },
         {
           "name": "Hearthstone Restoration",
-          "status": "Planned",
-          "ok": false,
-          "summary": "Captions engine planned; blog once their site is live.",
+          "status": "Onboarded",
+          "ok": true,
+          "summary": "Retail roofing client. Profile + voice locked; captions, hooks, subhooks in progress. Blog once their site is live.",
           "details": [
-            "Captions from their intake forms",
-            "Blog once WP + service pages finish"
+            "Profile built from intake (avatar + customer journey)",
+            "Retail positioning: no storm/insurance; offer = free drone inspection",
+            "DM keywords: DRONE, ROOF, TRUSTED, QUALITY, CERTAIN",
+            "Captions + hooks/subhooks drafting; blog pending WP + service pages"
           ]
         },
         {
