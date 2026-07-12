@@ -86,7 +86,7 @@ window.CC_DATA = {
       "tagline": "She writes in your voice. Blogs, captions, hooks, and subhooks, on brand every time.",
       "avatar": "assets/muse.png",
       "voice": "assets/muse-voice.m4a",
-      "status": "voice loaded - 4 clients, 22 scheduled",
+      "status": "voice loaded - 5 clients, 22 scheduled",
       "subjectsLabel": "Clients",
       "clients": [
         {
@@ -132,6 +132,18 @@ window.CC_DATA = {
             "ICP: 45-65 US/Canada couples building in Roatán; trust is the story",
             "Voice: calm, premium, transparent (master-builder guide)",
             "Next: video footage, brand kit, confirm offer + DM keywords"
+          ]
+        },
+        {
+          "name": "The Real State of Roatan",
+          "status": "Onboarded",
+          "ok": true,
+          "summary": "Cristian Lopez's Roatán real estate arm (sister to ICS). Educational, data-driven “real state of the island” voice.",
+          "details": [
+            "Profile + raw intake captured (two intake forms)",
+            "ICP: 30-65 investors + visionaries, not retirees; Roatán vs Costa Rica",
+            "Name is wordplay: the real STATE of the island (facts, data)",
+            "Next: IG handle, brand kit, real data sources, CTA route"
           ]
         }
       ]
