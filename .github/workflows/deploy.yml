@@ -1,0 +1,29 @@
+name: Deploy to Cloudflare Pages
+
+# Auto-publishes the dashboard to Cloudflare Pages on every push to main,
+# so changes go live without a manual `wrangler pages deploy`.
+#
+# One-time setup (in GitHub → repo Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN   (Cloudflare → My Profile → API Tokens → use the
+#                             "Cloudflare Pages: Edit" template)
+#   - CLOUDFLARE_ACCOUNT_ID  (Cloudflare dashboard → Workers & Pages → account ID)
+# If the Pages project is not named "cc-lyon", update projectName below.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy . --project-name=cc-lyon --branch=main
