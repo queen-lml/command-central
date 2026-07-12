@@ -86,7 +86,7 @@ window.CC_DATA = {
       "tagline": "She writes in your voice. Blogs, captions, hooks, and subhooks, on brand every time.",
       "avatar": "assets/muse.png",
       "voice": "assets/muse-voice.m4a",
-      "status": "voice loaded - 22 scheduled",
+      "status": "voice loaded - 4 clients, 22 scheduled",
       "subjectsLabel": "Clients",
       "clients": [
         {
@@ -120,6 +120,18 @@ window.CC_DATA = {
             "Voice + profile captured; captions, hooks, subhooks live",
             "Lead magnet: Unlock Your VA Benefits (guide + branded PDF)",
             "Signature, bios + lender-routing rule locked in"
+          ]
+        },
+        {
+          "name": "IC Solutions (ICS)",
+          "status": "Onboarded",
+          "ok": true,
+          "summary": "Roatán design-build firm: homes, remodels, commercial, boutique hotels, pools. Premium, trust-first voice.",
+          "details": [
+            "Profile + raw intake captured from onboarding call",
+            "ICP: 45-65 US/Canada couples building in Roatán; trust is the story",
+            "Voice: calm, premium, transparent (master-builder guide)",
+            "Next: video footage, brand kit, confirm offer + DM keywords"
           ]
         }
       ]
