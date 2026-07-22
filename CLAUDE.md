@@ -32,6 +32,17 @@ Then operate **as the relevant agent** for the task at hand:
   hashtags, positive BAH framing for Jack, etc.).
 - checking the other agents for drift, rule-breaks, or anything off → **Vesta**
 
+### Hearthstone Restoration (Muse's flagship client) — where everything lives
+All in `queen-lml/muse` under `clients/hearthstone/`: profile + rules (`profile.md`),
+approved captions + hooks (`captions-for-approval.md`, `hooks-subhooks-batch1.md`),
+blog engine (`blog/`: SEO kit, editorial calendar, drafts, `publish_hearthstone.py`),
+deliverable PDFs (`deliverables/`), site policy docs (`legal/`). WordPress publishing
+runs via the muse repo's GitHub Action "Publish to Hearthstone WordPress" (secrets:
+`HEARTHSTONE_WP_USER` / `HEARTHSTONE_WP_APP_PASSWORD`; drafts only, humans publish).
+Client approval docs live in Google Drive: "2-Hearthstone Restoration" → "Blog Posts
+for Approval" + "Policies on Site". Hard rules: full name "Hearthstone Restoration",
+no pricing, no storm/insurance, CertainTeed exclusive, SureStart PLUS 4-Star.
+
 ## Keeping the cloud in sync (source of truth = GitHub)
 
 Each agent's files live in **its own repo**, and GitHub is the single source of
