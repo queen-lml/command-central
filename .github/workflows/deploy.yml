@@ -1,17 +1,29 @@
 name: Deploy to Cloudflare Pages
 
-# Auto-publishes the dashboard to Cloudflare Pages on every push to main,
-# so changes go live without a manual `wrangler pages deploy`.
+# MANUAL ONLY. Do not put this back on `push: branches: [main]`.
 #
-# One-time setup (in GitHub → repo Settings → Secrets and variables → Actions):
-#   - CLOUDFLARE_API_TOKEN   (Cloudflare → My Profile → API Tokens → use the
-#                             "Cloudflare Pages: Edit" template)
-#   - CLOUDFLARE_ACCOUNT_ID  (Cloudflare dashboard → Workers & Pages → account ID)
-# If the Pages project is not named "cc-lyon", update projectName below.
+# The live dashboard is built and deployed by the "Command Central Dashboard"
+# workflow in queen-lml/gsc-monitoring-agent, which runs every 6 hours: it
+# regenerates data.js from live GSC/GA4/WordPress/GHL data and deploys its
+# dashboard/ folder to this same Cloudflare Pages project (cc-lyon).
+#
+# When this repo also deployed on every push to main, the two fought over the
+# same project. This repo's data.js is hand-maintained and goes stale, so a push
+# here would overwrite the freshly built site with old client data until the next
+# 6-hour build put it back. That is why the dashboard kept showing the wrong
+# clients. One deployer only.
+#
+# Running this manually still overwrites live data until the next scheduled
+# build. Use it only to preview a UI change, and mirror UI edits (index.html,
+# app.js, style.css, assets/) into gsc-monitoring-agent/dashboard/ so the
+# scheduled build ships them for real.
+#
+# Secrets (repo Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN   ("Cloudflare Pages: Edit" template)
+#   - CLOUDFLARE_ACCOUNT_ID  (Workers & Pages → account ID)
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:

@@ -1,9 +1,11 @@
 # Command Central — Agent Hub
 
-Command Central is Leslie M Lyon's hub for her three AI agents. This repo itself
-is the **status dashboard** (a static site: `index.html` + `data.js` + `app.js`,
-deployed via Cloudflare, see `wrangler.toml`). Its more important job: it is the
-**front door that loads the whole agent team.**
+Command Central is Leslie M Lyon's hub for her three AI agents. This repo holds the
+**dashboard UI** (`index.html` + `app.js` + `style.css` + `assets/`). Its more
+important job: it is the **front door that loads the whole agent team.**
+
+> ⚠️ The live site is **not deployed from this repo.** See "How the dashboard
+> actually gets built" below before changing anything about the dashboard.
 
 ## The three agents (each lives in its own private repo)
 
@@ -42,6 +44,34 @@ runs via the muse repo's GitHub Action "Publish to Hearthstone WordPress" (secre
 Client approval docs live in Google Drive: "2-Hearthstone Restoration" → "Blog Posts
 for Approval" + "Policies on Site". Hard rules: full name "Hearthstone Restoration",
 no pricing, no storm/insurance, CertainTeed exclusive, SureStart PLUS 4-Star.
+
+## How the dashboard actually gets built (read before touching it)
+
+The dashboard at **cc-lyon** (Cloudflare Pages) is built and deployed by the
+**"Command Central Dashboard"** workflow in `queen-lml/gsc-monitoring-agent`
+(`.github/workflows/dashboard.yml`), on a **cron every 6 hours**. That workflow:
+
+1. runs `build_dashboard.py`, which pulls **live** GSC + GA4 per Sage client,
+   live WordPress scheduled/draft counts, live GHL bookings, and Vesta's latest
+   `dashboard/vesta_status.json`,
+2. writes `dashboard/data.js`,
+3. deploys that repo's `dashboard/` folder to the `cc-lyon` Pages project.
+
+So there is **one deployer**, and it is the Sage repo. Consequences:
+
+- **Adding or updating a client on the dashboard = edit
+  `gsc-monitoring-agent/roster.json`** (Muse's clients + Vesta's watch list).
+  Sage's client list is not there: it comes from `CLIENTS` in
+  `send_monthly_report.py`, the same list her reports run on.
+- **UI changes** (`index.html`, `app.js`, `style.css`, `assets/`) must be
+  **mirrored into `gsc-monitoring-agent/dashboard/`** or they never go live.
+  The two copies are identical today, keep them that way.
+- This repo's `data.js` is a **local preview mirror only**. It is not what
+  production serves. Do not treat it as the roster.
+- This repo's `deploy.yml` is **manual-only on purpose**. It used to run on every
+  push to main, which overwrote the freshly built site with this repo's stale
+  hand-edited `data.js` until the next 6-hour build. That is why the dashboard
+  kept showing the wrong clients. Do not put it back on `push`.
 
 ## Keeping the cloud in sync (source of truth = GitHub)
 
