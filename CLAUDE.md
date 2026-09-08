@@ -41,6 +41,11 @@ blog engine (`blog/`: SEO kit, editorial calendar, drafts, `publish_hearthstone.
 deliverable PDFs (`deliverables/`), site policy docs (`legal/`). WordPress publishing
 runs via the muse repo's GitHub Action "Publish to Hearthstone WordPress" (secrets:
 `HEARTHSTONE_WP_USER` / `HEARTHSTONE_WP_APP_PASSWORD`; drafts only, humans publish).
+Scheduled posts on both client sites are watched hourly by muse's "Client Blog
+Publishing Watch" (`blog_watch.py`): a post WordPress fails to publish on time is
+published by the watch itself, and Leslie gets an email saying what was stuck and
+what is now live. She is never asked to fix it herself. lesliemlyon.com gets the
+same from Sage's "Blog Publishing Watch".
 Client approval docs live in Google Drive: "2-Hearthstone Restoration" → "Blog Posts
 for Approval" + "Policies on Site". Hard rules: full name "Hearthstone Restoration",
 no pricing, no storm/insurance, CertainTeed exclusive, SureStart PLUS 4-Star.
