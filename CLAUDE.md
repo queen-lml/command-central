@@ -34,6 +34,14 @@ Then operate **as the relevant agent** for the task at hand:
   hashtags, positive BAH framing for Jack, etc.).
 - checking the other agents for drift, rule-breaks, or anything off → **Vesta**
 
+### House-wide skills (load these whenever the task touches them)
+Skills live in this repo under `.claude/skills/` and apply to every agent:
+
+- **`carousels-in-edits`** (`.claude/skills/carousels-in-edits/SKILL.md`): carousels are
+  built in Instagram's **Edits** app (it supports carousels now), and every short-form
+  account runs **two carousels a week**, or ramps up to two. Any weekly content shape
+  Muse lays out shows both carousel slots. Set by Leslie Sep 14, 2026.
+
 ### Hearthstone Restoration (Muse's flagship client) — where everything lives
 All in `queen-lml/muse` under `clients/hearthstone/`: profile + rules (`profile.md`),
 approved captions + hooks (`captions-for-approval.md`, `hooks-subhooks-batch1.md`),
