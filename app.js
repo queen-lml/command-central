@@ -89,6 +89,12 @@
   }
 
   // One signal per item: who has the next move.
+  function linkify(t) {
+    return esc(t).split(' | ').map(function (part) {
+      return part.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">open</a>');
+    }).join(' &middot; ');
+  }
+
   function signal(it) {
     var d = daysSince(it.since), w = it.waitingOn || 'nobody';
     var age = (d !== null && d >= 1) ? ' &middot; ' + d + (d === 1 ? ' day' : ' days') : '';
@@ -117,7 +123,7 @@
         (it.next && sg.cls !== 'you' ? '<p><b>Next step:</b> ' + esc(it.next) + '</p>' : '') +
         '<p class="fine">Stage: ' + esc(stageLabel(it.stage)) + (it.since ? ' since ' + esc(it.since) : '') +
           (it.type ? ' &middot; ' + esc(it.type) : '') + '</p>' +
-        (it.where ? '<p class="fine">Files: <code>' + esc(it.where) + '</code></p>' : '') +
+        (it.where ? '<p class="fine">Files: ' + linkify(it.where) + '</p>' : '') +
       '</div>' +
     '</div>';
   }
