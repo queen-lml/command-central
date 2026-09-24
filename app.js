@@ -19,7 +19,7 @@
     { id: 'ready', label: 'Ready to schedule' },
     { id: 'live', label: 'Live' }
   ];
-  var WHO = { leslie: 'You', client: 'Client', muse: 'Muse', va: 'VA', smm: 'Social manager', nobody: 'Nobody' };
+  var WHO = { leslie: 'You', client: 'Client', vendor: 'Vendor', muse: 'Muse', va: 'VA', smm: 'Social manager', nobody: 'Nobody' };
   var filter = 'all';
 
   function stageIndex(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i; return 0; }
@@ -94,6 +94,7 @@
     var age = (d !== null && d >= 1) ? ' &middot; ' + d + (d === 1 ? ' day' : ' days') : '';
     if (w === 'leslie') return { cls: 'you', text: 'Your move' + age };
     if (w === 'client') return { cls: 'client', text: 'Waiting on client' + age };
+    if (w === 'vendor') return { cls: 'client', text: 'Waiting on vendor' + age };
     if (w === 'muse' || w === 'va' || w === 'smm') return { cls: 'team', text: (WHO[w] || w) + ' is on it' };
     if (it.stage === 'live') return { cls: 'done', text: 'Done' };
     if (it.stage === 'ready') return { cls: 'done', text: 'Scheduled' };
