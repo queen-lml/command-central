@@ -115,6 +115,7 @@
     if (s.carousels) bits.push(s.carousels + ' carousel' + (s.carousels === 1 ? '' : 's'));
     if (s.posts) bits.push(s.posts + ' single post' + (s.posts === 1 ? '' : 's'));
     return '<p class="wsocial"><b>Instagram @' + esc(s.username) + ' this month:</b> ' + s.total + ' posted' +
+      (s.unique && s.unique < s.total ? ' from ' + s.unique + ' unique pieces' : '') +
       (bits.length ? ' (' + bits.join(', ') + ')' : '') +
       (s.last ? ' &middot; last post ' + esc(s.last) : '') + '</p>';
   }
