@@ -6,93 +6,30 @@
 
   function playVoice(src) { try { new Audio(src).play().catch(function () {}); } catch (e) {} }
 
-  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 
-  // ---- Client Work: monthly deliverables per client (data.work, from work.json) ----
+  // ---- Client Work (data.work, from work.json) ----
   var work = data.work || null;
-  var STAGES = [
-    { id: 'intake', label: 'Onboarding' },
-    { id: 'plan', label: 'Planning' },
-    { id: 'create', label: 'Muse writing' },
-    { id: 'review', label: 'Your review' },
-    { id: 'client', label: 'Client approval' },
-    { id: 'ready', label: 'Ready to schedule' },
-    { id: 'live', label: 'Live' }
-  ];
-  var WHO = { leslie: 'You', client: 'Client', vendor: 'Vendor', muse: 'Muse', va: 'VA', smm: 'Social manager', nobody: 'Nobody' };
-  var filter = 'all';
-
-  function stageIndex(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i; return 0; }
-  function stageLabel(id) { return STAGES[stageIndex(id)].label; }
+  var vendors = data.vendors || null;
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var today = new Date();
+  var THIS_MONTH = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
 
   function daysSince(d) {
     if (!d) return null;
     var t = Date.parse(d + 'T12:00:00');
     return isNaN(t) ? null : Math.max(0, Math.floor((Date.now() - t) / 86400000));
   }
+  function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
 
-  function monthName(m) {
-    var n = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    var i = m ? parseInt(m.split('-')[1], 10) - 1 : -1;
-    return n[i] ? n[i] + ' monthly' : 'monthly';
-  }
-
-  function allItems() {
-    var out = [];
-    (work ? work.clients : []).forEach(function (c) { c.items.forEach(function (it) { out.push(it); }); });
-    return out;
-  }
-  function isOpen(it) { return !!it.waitingOn && it.waitingOn !== 'nobody'; }
-  function isStuck(it) { var d = daysSince(it.since); return isOpen(it) && d !== null && d >= 14; }
-  function matches(it) {
-    if (filter === 'leslie') return isOpen(it) && it.waitingOn === 'leslie';
-    if (filter === 'client') return isOpen(it) && it.waitingOn === 'client';
-    if (filter === 'stuck') return isStuck(it);
-    return true;
-  }
-  function count(fn) { return allItems().filter(fn).length; }
-
-  function workBanner() {
-    if (!work) return '';
-    var n = count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; });
-    return '<a class="workbanner" href="#work">' +
-      '<span class="wbtitle">Client Work</span>' +
-      '<span class="wbsub">Every client\'s monthly deliverables and where each one stands</span>' +
-      '<span class="wbcount' + (n ? ' hot' : '') + '">' + n + ' waiting on you &rarr;</span>' +
-    '</a>';
-  }
-
-  function stepper(it) {
-    var cur = stageIndex(it.stage);
-    return '<ol class="stepper" aria-label="Stage: ' + esc(stageLabel(it.stage)) + '">' + STAGES.map(function (s, i) {
-      var cls = i < cur ? 'past' : (i === cur ? 'now' : '');
-      return '<li class="' + cls + '" title="' + s.label + '"><span></span></li>';
-    }).join('') + '</ol>';
-  }
-
-  function segLabel(k) { return k === 'ready' ? 'scheduled / ready' : stageLabel(k).toLowerCase(); }
-
-  function progressBar(it) {
-    if (!it.monthly) return '';
-    if (!it.target) return '<div class="pmeta"><b>' + (it.done || 0) + '</b> delivered this month (no set number yet)</div>';
-    var p = it.progress || {}, parts = '', used = 0;
-    ['live', 'ready', 'client', 'review', 'create', 'plan'].forEach(function (k) {
-      var n = p[k] || 0; if (!n) return;
-      used += n;
-      parts += '<span class="seg s-' + k + '" style="width:' + (100 * n / it.target) + '%" title="' + n + ' ' + segLabel(k) + '"></span>';
-    });
-    var legend = ['live', 'ready', 'client', 'review', 'create', 'plan'].filter(function (k) { return p[k]; })
-      .map(function (k) { return '<span class="lg"><i class="s-' + k + '"></i>' + p[k] + ' ' + segLabel(k) + '</span>'; }).join('');
-    if (used < it.target) legend += '<span class="lg"><i class="s-none"></i>' + (it.target - used) + ' not started</span>';
-    return '<div class="pbar">' + parts + '</div>' +
-      '<div class="pmeta"><b>' + (it.done || 0) + ' of ' + it.target + '</b> delivered this month' + (legend ? ' &middot; ' + legend : '') + '</div>';
-  }
-
-  // One signal per item: who has the next move.
   function linkify(t) {
     return esc(t).split(' | ').map(function (part) {
+      // "Label: https://..." -> a link named Label
+      var m = part.match(/^([^:]{1,60}?):\s*(https?:\/\/\S+)\s*$/);
+      if (m) return '<a href="' + m[2] + '" target="_blank" rel="noopener">' + m[1] + '</a>';
       part = part.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">open</a>');
-      // repo paths like muse/clients/x.md or gsc-monitoring-agent/tasks/y.md -> GitHub
+      // repo paths like muse/clients/x.md -> GitHub
       return part.replace(/(^|\s)((muse|vesta|gsc-monitoring-agent|command-central)\/[^\s]+)/g, function (m, sp, path, repo) {
         var rest = path.slice(repo.length + 1);
         var kind = /\/$/.test(rest) || !/\.[a-z0-9]+$/i.test(rest) ? 'tree' : 'blob';
@@ -101,61 +38,85 @@
     }).join(' &middot; ');
   }
 
-  function signal(it) {
-    var d = daysSince(it.since), w = it.waitingOn || 'nobody';
-    var age = (d !== null && d >= 1) ? ' &middot; ' + d + (d === 1 ? ' day' : ' days') : '';
-    if (w === 'leslie') return { cls: 'you', text: 'Your move' + age };
-    if (w === 'client') return { cls: 'client', text: 'Waiting on client' + age };
-    if (w === 'vendor') return { cls: 'client', text: 'Waiting on vendor' + age };
-    if (w === 'muse' || w === 'va' || w === 'smm') return { cls: 'team', text: (WHO[w] || w) + ' is on it' };
-    if (it.stage === 'live') return { cls: 'done', text: 'Done' };
-    if (it.stage === 'ready') return { cls: 'done', text: 'Scheduled' };
-    return { cls: 'parked', text: 'Parked' };
+  // Which section an item lives in: progress, future, done, dream (or old = done before this month).
+  function isDone(it) {
+    return it.stage === 'live' && (it.waitingOn || 'nobody') === 'nobody' &&
+      (!it.monthly || !it.target || (it.done || 0) >= it.target);
+  }
+  function bucket(it) {
+    if (it.bucket) return it.bucket;
+    if (isDone(it)) return (it.month || (it.since || '').slice(0, 7)) < THIS_MONTH ? 'old' : 'done';
+    var w = it.waitingOn || 'nobody';
+    if (it.month && it.month > THIS_MONTH && w !== 'leslie' && w !== 'client' && w !== 'vendor') return 'future';
+    if (w === 'nobody' && it.stage !== 'ready' && it.stage !== 'live') return 'future';   // parked
+    return 'progress';
   }
 
-  function itemHTML(it) {
-    var sg = signal(it), d = daysSince(it.since);
-    var late = (sg.cls === 'you' || sg.cls === 'client') && d !== null && d >= 14;
-    return '<div class="witem s-' + sg.cls + (sg.cls === 'done' ? ' done' : '') + '">' +
-      '<button class="wihead">' +
-        '<span class="dot d-' + sg.cls + '"></span>' +
-        '<span class="wtitle">' + esc(it.title) + (it.monthly ? ' <span class="mo">' + esc(monthName(it.month)) + '</span>' : '') + '</span>' +
-        '<span class="sig g-' + sg.cls + (late ? ' late' : '') + '">' + sg.text + '</span>' +
+  // The status tag on the right of each row.
+  function tag(it) {
+    var w = it.waitingOn || 'nobody';
+    if (isDone(it)) return { cls: 'done', text: 'Done' };
+    if (w === 'leslie') return { cls: 'mine', text: 'Mine' };
+    if (w === 'client') return { cls: 'theirs', text: 'Theirs' };
+    if (w === 'vendor') return { cls: 'vendor', text: 'Vendor' };
+    if (w === 'smm' || w === 'va') return { cls: 'team', text: it.who || (w === 'smm' ? 'Social manager' : 'VA') };
+    if (w === 'muse') return { cls: 'muse', text: 'Muse' };
+    if (it.stage === 'ready' || it.stage === 'live') return { cls: 'sched', text: 'Scheduled' };
+    return { cls: 'later', text: 'Later' };
+  }
+  var ORDER = { mine: 0, team: 1, theirs: 2, vendor: 3, muse: 4, sched: 5, later: 6, done: 7 };
+
+  function dueText(it) {
+    var t = tag(it);
+    if (it.due) {
+      var d = new Date(it.due + 'T12:00:00'), late = d < new Date(today.toDateString());
+      return '<span class="due' + (late ? ' late' : '') + '">' + (late ? 'Overdue ' : 'Due ') +
+        d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + '</span>';
+    }
+    var n = daysSince(it.since);
+    if ((t.cls === 'theirs' || t.cls === 'vendor' || t.cls === 'mine' || t.cls === 'team') && n) {
+      return '<span class="due' + (n >= 14 ? ' late' : '') + '">' + (t.cls === 'mine' ? 'On you ' : 'Waiting ') + plural(n, 'day') + '</span>';
+    }
+    return '';
+  }
+
+  function rowHTML(it, clientName) {
+    var t = tag(it), done = t.cls === 'done';
+    var count = it.monthly && it.target ? ' <b>' + (it.done || 0) + ' of ' + it.target + '</b>' : '';
+    var bar = it.monthly && it.target && it.done && !done
+      ? '<div class="bar"><i style="width:' + Math.min(100, 100 * it.done / it.target) + '%"></i></div>' : '';
+    return '<div class="row' + (done ? ' isdone' : '') + '">' +
+      '<button class="rhead">' +
+        '<span class="rt">' + (clientName ? '<span class="rclient">' + esc(clientName) + '</span>' : '') + esc(it.title) + '</span>' +
+        '<span class="rn">' + esc(done ? (it.why || '') : (it.next || it.why || '')) + count + '</span>' + bar +
+        '<span class="rr"><span class="tag t-' + t.cls + '">' + esc(t.text) + '</span>' + dueText(it) + '</span>' +
       '</button>' +
-      (sg.cls === 'you' && it.next ? '<p class="wnext">&rarr; ' + esc(it.next) + '</p>' : '') +
-      progressBar(it) +
-      '<div class="wibody">' +
+      '<div class="more">' +
         (it.why ? '<p><b>Why:</b> ' + esc(it.why) + '</p>' : '') +
-        (it.next && sg.cls !== 'you' ? '<p><b>Next step:</b> ' + esc(it.next) + '</p>' : '') +
-        '<p class="fine">Stage: ' + esc(stageLabel(it.stage)) + (it.since ? ' since ' + esc(it.since) : '') +
-          (it.type ? ' &middot; ' + esc(it.type) : '') + '</p>' +
-        (it.where ? '<p class="fine">Files: ' + linkify(it.where) + '</p>' : '') +
+        (it.next && !done ? '<p><b>Next:</b> ' + esc(it.next) + '</p>' : '') +
+        (it.where ? '<p><b>Links:</b> ' + linkify(it.where) + '</p>' : '') +
+        (it.vendor ? '<p><b>Vendor:</b> ' + esc([].concat(it.vendor).join(', ')) + '</p>' : '') +
       '</div>' +
     '</div>';
   }
 
-  function yourMoveHTML() {
-    var rows = [];
-    work.clients.forEach(function (c) {
-      c.items.forEach(function (it) { if (it.waitingOn === 'leslie') rows.push({ c: c.name, it: it }); });
-    });
-    if (!rows.length) return '<div class="yourmove empty"><b>Your move:</b> nothing is waiting on you. 🎉</div>';
-    rows.sort(function (a, b) { return (daysSince(b.it.since) || 0) - (daysSince(a.it.since) || 0); });
-    return '<div class="yourmove"><h3><span class="dot d-you"></span>Your move &middot; ' + rows.length + '</h3><ol>' +
-      rows.map(function (r) {
-        var d = daysSince(r.it.since);
-        return '<li><b>' + esc(r.c) + '</b> &middot; ' + esc(r.it.title) +
-          (r.it.next ? '<br><span class="ymnext">&rarr; ' + esc(r.it.next) + '</span>' : '') +
-          (d ? ' <span class="fine">(' + d + (d === 1 ? ' day' : ' days') + ')</span>' : '') + '</li>';
-      }).join('') + '</ol></div>';
+  function sectionHTML(n, title, note, items, empty, clientOf) {
+    return '<section class="wsec"><div class="sh"><span class="num">' + n + '</span><h3>' + title + '</h3><small>' + note + '</small></div>' +
+      (items.length ? items.map(function (it) { return rowHTML(it, clientOf && clientOf(it)); }).join('') : '<p class="empty">' + empty + '</p>') +
+    '</section>';
+  }
+
+  function sortRows(a, b) {
+    return ORDER[tag(a).cls] - ORDER[tag(b).cls] || (a.due || 'z').localeCompare(b.due || 'z') ||
+      (daysSince(b.since) || 0) - (daysSince(a.since) || 0);
   }
 
   function socialHTML(s) {
     if (!s) return '';
     var bits = [];
-    if (s.reels) bits.push(s.reels + ' reel' + (s.reels === 1 ? '' : 's'));
-    if (s.carousels) bits.push(s.carousels + ' carousel' + (s.carousels === 1 ? '' : 's'));
-    if (s.posts) bits.push(s.posts + ' single post' + (s.posts === 1 ? '' : 's'));
+    if (s.reels) bits.push(plural(s.reels, 'reel'));
+    if (s.carousels) bits.push(plural(s.carousels, 'carousel'));
+    if (s.posts) bits.push(plural(s.posts, 'single post'));
     return '<p class="wsocial"><b>Instagram @' + esc(s.username) + ' this month:</b> ' + s.total + ' posted' +
       (s.unique && s.unique < s.total ? ' from ' + s.unique + ' unique pieces' : '') +
       (bits.length ? ' (' + bits.join(', ') + ')' : '') +
@@ -163,70 +124,128 @@
   }
 
   function listingsHTML(c) {
-    if (!c.listings || !c.listings.length || filter !== 'all') return '';
-    return '<div class="wlistings"><b>' + esc(c.listingsTitle || 'Listings') + '</b><ul>' + c.listings.map(function (l) {
+    if (!c.listings || !c.listings.length) return '';
+    return '<div class="wlistings"><h4>' + esc(c.listingsTitle || 'Listings') + '</h4><ul>' + c.listings.map(function (l) {
       return '<li><a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.address) + '</a>' +
-        ' <span class="fine">' + esc(l.town) + (l.facts ? ' &middot; ' + esc(l.facts) : '') + '</span>' +
-        (l.status ? ' <span class="mo">' + esc(l.status) + '</span>' : '') + '</li>';
+        ' <span class="lf">' + esc(l.town) + (l.facts ? ' &middot; ' + esc(l.facts) : '') + '</span>' +
+        (l.status ? ' <span class="tag t-sched">' + esc(l.status) + '</span>' : '') + '</li>';
     }).join('') + '</ul></div>';
   }
 
-  function workHTML() {
-    if (!work) return '<a class="back" href="#">&larr; All agents</a><p>No client work data yet.</p>';
-    var chips = [
-      ['all', 'Everything', allItems().length],
-      ['leslie', 'Your move', count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; })],
-      ['client', 'Waiting on clients', count(function (it) { return isOpen(it) && it.waitingOn === 'client'; })],
-      ['stuck', 'Stuck 14+ days', count(isStuck)]
-    ];
-    var clients = work.clients.map(function (c) {
-      var rank = { leslie: 0, client: 1, va: 2, smm: 2, muse: 3, nobody: 4 };
-      var items = c.items.filter(matches).slice().sort(function (a, b) {
-        var ra = a.waitingOn in rank ? rank[a.waitingOn] : 4, rb = b.waitingOn in rank ? rank[b.waitingOn] : 4;
-        return ra - rb || (daysSince(b.since) || 0) - (daysSince(a.since) || 0);
-      });
-      if (!items.length && filter !== 'all') return '';
-      var mine = c.items.filter(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; }).length;
-      return '<section class="wclient">' +
-        '<div class="wchead"><h3>' + esc(c.name) + '</h3>' +
-          (mine ? '<span class="sig g-you">' + mine + ' your move</span>' : '') + '</div>' +
-        (c.scope ? '<p class="wscope">' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
-        socialHTML(c.social) +
-        listingsHTML(c) +
-        (items.length ? items.map(itemHTML).join('') : '<p class="fine">Nothing in progress.</p>') +
+  function teamOf(c) { return (c.team || []).filter(function (p) { return p && p.name; }); }
+  function allTeam() {
+    var seen = {}, out = [];
+    (work ? work.clients : []).forEach(function (c) {
+      teamOf(c).forEach(function (p) { if (!seen[p.name]) { seen[p.name] = 1; out.push(p); } });
+    });
+    return out;
+  }
+  function mineItems() {
+    var out = [];
+    work.clients.forEach(function (c) {
+      c.items.forEach(function (it) { if (it.waitingOn === 'leslie' && !it.bucket) out.push({ c: c, it: it }); });
+    });
+    return out;
+  }
+
+  function pillsHTML(active) {
+    var mine = mineItems().length;
+    return '<nav class="pills">' +
+      '<a class="pill my' + (active === 'mine' ? ' on' : '') + '" href="#work/mine">My list <b>' + mine + '</b></a>' +
+      work.clients.map(function (c) {
+        var n = c.items.filter(function (it) { return it.waitingOn === 'leslie' && !it.bucket; }).length;
+        return '<a class="pill' + (active === slug(c.name) ? ' on' : '') + '" href="#work/' + slug(c.name) + '">' + esc(c.short || c.name) +
+          (n ? ' <i class="pdot" title="' + n + ' on you"></i>' : '') + '</a>';
+      }).join('') +
+      allTeam().map(function (p) {
+        return '<a class="pill person' + (active === 'team-' + slug(p.name) ? ' on' : '') + '" href="#team/' + slug(p.name) + '">' + esc(p.name) + '\'s list</a>';
+      }).join('') +
+    '</nav>';
+  }
+
+  function countsHTML(list) {
+    var by = {};
+    list.forEach(function (x) { var b = bucket(x); var k = b === 'progress' ? tag(x).cls : b; by[k] = (by[k] || 0) + 1; });
+    var cells = [['mine', 'Mine'], ['team', 'Team'], ['theirs', 'Theirs'], ['vendor', 'Vendor'], ['future', 'Future'], ['done', 'Done in ' + MONTHS[today.getMonth()].slice(0, 3)]]
+      .filter(function (c) { return c[0] !== 'team' || by.team; });
+    return '<div class="counts">' + cells.map(function (c) {
+      return '<div class="count c-' + c[0] + '"><b>' + (by[c[0]] || 0) + '</b>' + c[1] + '</div>';
+    }).join('') + '</div>';
+  }
+
+  function clientHTML(c) {
+    var items = c.items.slice();
+    function inB(b) { return items.filter(function (it) { return bucket(it) === b; }).sort(sortRows); }
+    var prog = inB('progress'), fut = inB('future'), done = inB('done'), dream = inB('dream'), old = inB('old');
+    var team = teamOf(c);
+    return '<div class="chead"><h2>' + esc(c.name) + '</h2>' +
+        (c.scope ? '<p>' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
+        (team.length ? '<p class="team"><b>Team:</b> ' + team.map(function (p) {
+          return '<a href="#team/' + slug(p.name) + '">' + esc(p.name) + '</a>' + (p.role ? ' (' + esc(p.role) + ')' : '');
+        }).join(', ') + '</p>' : '') +
+      '</div>' +
+      countsHTML(items) +
+      socialHTML(c.social) +
+      listingsHTML(c) +
+      sectionHTML(1, 'In progress', 'Mine first, then theirs, vendor, Muse', prog, 'Nothing in progress.') +
+      sectionHTML(2, 'Future tasks', 'Coming up next', fut, 'Nothing queued.') +
+      sectionHTML(3, 'Done this month', MONTHS[today.getMonth()], done, 'Nothing finished yet this month.') +
+      (old.length ? '<details class="older"><summary>Done before this month &middot; ' + old.length + '</summary>' +
+        old.map(function (it) { return rowHTML(it); }).join('') + '</details>' : '') +
+      '<section class="wsec"><div class="sh"><span class="num">4</span><h3>Dream projects</h3><small>For when you\'re caught up</small></div>' +
+        (dream.length ? dream.map(function (it) { return rowHTML(it); }).join('')
+          : '<div class="dream"><b>Empty for now.</b> Tell Muse the big ideas you never get to, and they will live here until there is room.</div>') +
       '</section>';
-    }).join('');
-    return '<a class="back" href="#">&larr; All agents</a>' +
-      '<h2 class="workh">Client Work</h2>' +
-      (vendors ? tabsHTML('work') : '') +
-      '<p class="worksub">What each client gets every month, and where it stands. Updated ' + esc(work.updated || '') + '.</p>' +
-      '<div class="chips">' + chips.map(function (c) {
-        return '<button class="chip' + (filter === c[0] ? ' on' : '') + '" data-f="' + c[0] + '">' + c[1] + ' <b>' + c[2] + '</b></button>';
-      }).join('') + '</div>' +
-      '<p class="legend"><span><span class="dot d-you"></span>Your move</span><span><span class="dot d-client"></span>Waiting on client</span>' +
-        '<span><span class="dot d-team"></span>Muse / team is on it</span><span><span class="dot d-done"></span>Done</span>' +
-        '<span><span class="dot d-parked"></span>Parked</span></p>' +
-      yourMoveHTML() +
-      (work.howItWorks ? '<p class="fine howit">' + esc(work.howItWorks) + ' Tap any item for the why and the files.</p>' : '') +
-      clients;
   }
 
-  var vendors = data.vendors || null;
-
-  function tabsHTML(active) {
-    return '<div class="tabs">' +
-      '<a class="tab' + (active === 'work' ? ' on' : '') + '" href="#work">Clients</a>' +
-      '<a class="tab' + (active === 'vendors' ? ' on' : '') + '" href="#vendors">Vendors</a>' +
-    '</div>';
+  function myListHTML() {
+    var rows = mineItems();
+    var by = {};
+    rows.forEach(function (r) { by[r.it.title] = r.c.name; });
+    var its = rows.map(function (r) { return r.it; }).sort(sortRows);
+    return '<div class="chead"><h2>My list</h2><p>Everything waiting on you, across every client. Tap a client above for their full page.</p></div>' +
+      sectionHTML(1, 'Mine', plural(its.length, 'item'), its, 'Nothing is waiting on you. 🎉', function (it) { return by[it.title]; });
   }
 
+  function personHTML(name) {
+    var p = allTeam().filter(function (x) { return slug(x.name) === name; })[0];
+    if (!p) return '<p class="empty">No one by that name on the team.</p>';
+    var rows = [];
+    work.clients.forEach(function (c) {
+      if (!teamOf(c).some(function (x) { return x.name === p.name; })) return;
+      c.items.forEach(function (it) { if (it.who === p.name) rows.push({ c: c, it: it }); });
+    });
+    var by = {};
+    rows.forEach(function (r) { by[r.it.title] = r.c.name; });
+    var its = rows.map(function (r) { return r.it; });
+    var open = its.filter(function (it) { return !isDone(it); }).sort(sortRows), done = its.filter(isDone);
+    var clients = work.clients.filter(function (c) { return teamOf(c).some(function (x) { return x.name === p.name; }); });
+    return '<div class="chead"><h2>' + esc(p.name) + '\'s list</h2><p>' + esc(p.role || 'Team') + ' &middot; ' +
+        clients.map(function (c) { return '<a href="#work/' + slug(c.name) + '">' + esc(c.name) + '</a>'; }).join(', ') + '</p></div>' +
+      sectionHTML(1, 'Assigned to ' + esc(p.name), plural(open.length, 'item'), open, 'Nothing assigned right now.', function (it) { return by[it.title]; }) +
+      sectionHTML(2, 'Done', '', done, 'Nothing done yet.', function (it) { return by[it.title]; });
+  }
+
+  function workHTML(sub) {
+    if (!work) return '<p class="empty">No client work data yet.</p>';
+    var page, active;
+    if (sub.indexOf('team/') === 0) { active = 'team-' + sub.slice(5); page = personHTML(sub.slice(5)); }
+    else {
+      var key = sub.replace(/^work\/?/, '') || slug(work.clients[0].name);
+      var c = work.clients.filter(function (x) { return slug(x.name) === key; })[0];
+      active = c ? key : 'mine';
+      page = c ? clientHTML(c) : myListHTML();
+    }
+    return pillsHTML(active) + '<div class="page">' + page + '</div>';
+  }
+
+  // ---- Vendors ----
   function openOrders(name) {
     var out = [];
     (work ? work.clients : []).forEach(function (c) {
       c.items.forEach(function (it) {
-        var v = it.vendor || [];
-        if (typeof v === 'string') v = [v];
-        if (v.indexOf(name) !== -1 && isOpen(it)) out.push({ c: c.name, it: it });
+        var v = [].concat(it.vendor || []);
+        if (v.indexOf(name) !== -1 && !isDone(it)) out.push({ c: c.name, it: it });
       });
     });
     return out;
@@ -234,32 +253,37 @@
 
   function vendorsHTML() {
     var list = vendors ? vendors.vendors : [];
-    return '<a class="back" href="#">&larr; All agents</a>' +
-      '<h2 class="workh">Vendors</h2>' +
-      '<p class="worksub">Who we pay to deliver work, what for, and why.</p>' +
-      tabsHTML('vendors') +
-      (list.length ? list.map(function (v) {
+    return '<div class="page"><div class="chead"><h2>Vendors</h2><p>Who we pay to deliver work, what for, and why.</p></div>' +
+      (list.length ? list.map(function (v, i) {
         var orders = openOrders(v.name);
-        return '<section class="wclient vendor">' +
-          '<div class="wchead"><h3>' + esc(v.name) + '</h3>' +
-            (orders.length ? '<span class="sig g-client">' + orders.length + ' open order' + (orders.length === 1 ? '' : 's') + '</span>' : '') + '</div>' +
-          '<p class="wscope"><b>What:</b> ' + esc(v.what || '') + '</p>' +
-          (v.why ? '<p class="wscope"><b>Why:</b> ' + esc(v.why) + '</p>' : '') +
-          (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="mo">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
-          '<div class="vcontact"><b>Contact</b> ' + (v.contact ? linkify(v.contact).replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>') : '<span class="fine">not added yet</span>') +
-            (v.phone ? ' &middot; <a href="tel:' + esc(v.phone) + '">' + esc(v.phone) + '</a>' : '') + '</div>' +
-          (v.cost ? '<p class="fine">Cost: ' + esc(v.cost) + '</p>' : '') +
-          (v.where ? '<p class="fine">Links: ' + linkify(v.where) + '</p>' : '') +
+        return '<section class="wsec vendor"><div class="sh"><span class="num">' + (i + 1) + '</span><h3>' + esc(v.name) + '</h3>' +
+            (orders.length ? '<small><span class="tag t-vendor">' + plural(orders.length, 'open order') + '</span></small>' : '') + '</div>' +
+          '<p><b>What:</b> ' + esc(v.what || '') + '</p>' +
+          (v.why ? '<p><b>Why:</b> ' + esc(v.why) + '</p>' : '') +
+          (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="tag t-later">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
+          '<p><b>Contact:</b> ' + (v.contact ? linkify(v.contact).replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>') : '<span class="fine">not added yet</span>') +
+            (v.phone ? ' &middot; <a href="tel:' + esc(v.phone) + '">' + esc(v.phone) + '</a>' : '') + '</p>' +
+          (v.cost ? '<p><b>Cost:</b> ' + esc(v.cost) + '</p>' : '') +
+          (v.where ? '<p><b>Links:</b> ' + linkify(v.where) + '</p>' : '') +
           (v.notes ? '<p class="fine">' + esc(v.notes) + '</p>' : '') +
-          (orders.length ? '<div class="vorders"><b>Open orders</b><ul>' + orders.map(function (o) {
-            return '<li>' + esc(o.c) + ' &middot; ' + esc(o.it.title) + ' <span class="fine">(' + esc(signal(o.it).text.replace(/&middot;/g, '·')) + ')</span></li>';
-          }).join('') + '</ul></div>' : '') +
+          (orders.length ? '<div class="vorders">' + orders.map(function (o) { return rowHTML(o.it, o.c); }).join('') + '</div>' : '') +
         '</section>';
-      }).join('') : '<p>No vendors yet.</p>');
+      }).join('') : '<p class="empty">No vendors yet.</p>') + '</div>';
+  }
+
+  // ---- Agents ----
+  function workBanner() {
+    if (!work) return '';
+    var n = mineItems().length;
+    return '<a class="workbanner" href="#work/mine">' +
+      '<span class="wbtitle">Client <em>Work</em></span>' +
+      '<span class="wbsub">Every client\'s deliverables and where each one stands</span>' +
+      '<span class="tag ' + (n ? 't-mine' : 't-done') + '">' + n + ' on you &rarr;</span>' +
+    '</a>';
   }
 
   function homeHTML() {
-    return workBanner() + '<div class="grid">' + data.agents.map(function (a) {
+    return '<div class="page wide">' + workBanner() + '<div class="grid">' + data.agents.map(function (a) {
       return '<article class="card" data-agent="' + a.id + '">' +
         '<div class="portrait"><img src="' + a.avatar + '" alt="' + a.name + '"><div class="fade"></div><div class="name">' + a.name + '</div></div>' +
         '<div class="body">' +
@@ -270,11 +294,11 @@
           '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' +
         '</div>' +
       '</article>';
-    }).join('') + '</div>';
+    }).join('') + '</div></div>';
   }
 
   function agentHTML(a) {
-    return '<a class="back" href="#">&larr; All agents</a>' +
+    return '<div class="page"><a class="back" href="#">&larr; All agents</a>' +
       '<div class="agenthero">' +
         '<img src="' + a.avatar + '" alt="' + a.name + '">' +
         '<div class="agentmeta">' +
@@ -284,29 +308,30 @@
           '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' +
         '</div>' +
       '</div>' +
-      '<h3 class="section">' + a.subjectsLabel + ' &middot; ' + a.clients.length + '</h3>' +
-      '<div class="clientlist">' +
+      '<section class="wsec"><div class="sh"><span class="num">' + a.clients.length + '</span><h3>' + a.subjectsLabel + '</h3></div>' +
         a.clients.map(function (c) {
-          return '<div class="client">' +
-            '<button class="clienthead">' +
-              '<span class="cname">' + esc(c.name) + '</span>' +
-              '<span class="cstatus ' + (c.ok ? 'good' : 'wait') + '">' + esc(c.status) + '</span>' +
-              '<span class="chev">+</span>' +
+          return '<div class="row">' +
+            '<button class="rhead">' +
+              '<span class="rt">' + esc(c.name) + '</span>' +
+              '<span class="rn">' + esc(c.summary) + '</span>' +
+              '<span class="rr"><span class="tag ' + (c.ok ? 't-done' : 't-mine') + '">' + esc(c.status) + '</span></span>' +
             '</button>' +
-            '<div class="clientbody">' +
-              '<p class="csum">' + esc(c.summary) + '</p>' +
-              '<ul>' + c.details.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
-            '</div>' +
+            '<div class="more"><ul>' + c.details.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul></div>' +
           '</div>';
         }).join('') +
-      '</div>';
+      '</section></div>';
   }
 
   function render() {
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
-    var a = agentById(id);
-    view.innerHTML = id === 'work' ? workHTML() : id === 'vendors' ? vendorsHTML() : (a ? agentHTML(a) : homeHTML());
+    var a = agentById(id), tab = 'agents';
+    if (id === 'work' || id.indexOf('work/') === 0 || id.indexOf('team/') === 0) { tab = 'work'; view.innerHTML = workHTML(id); }
+    else if (id === 'vendors') { tab = 'vendors'; view.innerHTML = vendorsHTML(); }
+    else view.innerHTML = a ? agentHTML(a) : homeHTML();
+    document.querySelectorAll('.topnav a').forEach(function (l) { l.classList.toggle('on', l.getAttribute('data-tab') === tab); });
     wire();
+    var on = view.querySelector('.pill.on');
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'center' });
     window.scrollTo(0, 0);
   }
 
@@ -320,19 +345,13 @@
     view.querySelectorAll('.voice').forEach(function (btn) {
       btn.addEventListener('click', function (e) { e.stopPropagation(); playVoice(btn.getAttribute('data-voice')); });
     });
-    view.querySelectorAll('.chip').forEach(function (b) {
-      b.addEventListener('click', function () { filter = b.getAttribute('data-f'); view.innerHTML = workHTML(); wire(); });
-    });
-    view.querySelectorAll('.witem').forEach(function (w) {
-      w.querySelector('.wihead').addEventListener('click', function () { w.classList.toggle('open'); });
-    });
-    view.querySelectorAll('.client').forEach(function (cl) {
-      cl.querySelector('.clienthead').addEventListener('click', function () { cl.classList.toggle('open'); });
+    view.querySelectorAll('.row').forEach(function (r) {
+      r.querySelector('.rhead').addEventListener('click', function () { r.classList.toggle('open'); });
     });
   }
 
   var _g = window.CC_DATA && window.CC_DATA.generated;
-  if (_g) { var _f = document.querySelector('footer'); if (_f) _f.insertAdjacentHTML('beforeend', ' &middot; updated ' + _g); }
+  if (_g) { var _u = document.getElementById('updated'); if (_u) _u.textContent = 'Updated ' + _g; }
   window.addEventListener('hashchange', render);
   render();
 })();

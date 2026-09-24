@@ -7,21 +7,25 @@
   <title>Command Central · Leslie M Lyon's Agents</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="eyebrow">Leslie M Lyon</div>
-      <h1><a href="#" class="homelink">Command Central<span class="dot">.</span></a></h1>
-      <p class="sub">Your team of agents, all in one place.</p>
-    </header>
+  <header class="top">
+    <div class="brand">
+      <a href="#" class="homelink"><h1>Command <em>Central</em></h1></a>
+      <span id="updated"></span>
+    </div>
+    <nav class="topnav">
+      <a href="#" data-tab="agents">Agents</a>
+      <a href="#work" data-tab="work">Clients</a>
+      <a href="#vendors" data-tab="vendors">Vendors</a>
+    </nav>
+  </header>
 
-    <div id="view"></div>
+  <main id="view"></main>
 
-    <footer>Command Central &middot; built with <span class="heart">&#10084;</span> for Leslie M Lyon</footer>
-  </div>
+  <footer>Command Central &middot; Leslie M Lyon</footer>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
