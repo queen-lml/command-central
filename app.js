@@ -145,7 +145,7 @@
         '<li><b>Client approval</b>: sent to the client, waiting on their yes or changes.</li>' +
         '<li><b>Ready to schedule</b>: approved, needs to be pushed to WordPress or scheduled.</li>' +
         '<li><b>Live</b>: published or delivered.</li>' +
-      '</ol><p class="fine">The number next to an item is how many days it has sat in its current stage. Amber at 7, red at 14.</p></details>' +
+      '</ol>' + (work.howItWorks ? '<p>' + esc(work.howItWorks) + '</p>' : '') + '<p class="fine">The number next to an item is how many days it has sat in its current stage. Amber at 7, red at 14.</p></details>' +
       clients;
   }
 
