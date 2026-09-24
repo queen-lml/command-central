@@ -91,7 +91,13 @@
   // One signal per item: who has the next move.
   function linkify(t) {
     return esc(t).split(' | ').map(function (part) {
-      return part.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">open</a>');
+      part = part.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">open</a>');
+      // repo paths like muse/clients/x.md or gsc-monitoring-agent/tasks/y.md -> GitHub
+      return part.replace(/(^|\s)((muse|vesta|gsc-monitoring-agent|command-central)\/[^\s]+)/g, function (m, sp, path, repo) {
+        var rest = path.slice(repo.length + 1);
+        var kind = /\/$/.test(rest) || !/\.[a-z0-9]+$/i.test(rest) ? 'tree' : 'blob';
+        return sp + '<a href="https://github.com/queen-lml/' + repo + '/' + kind + '/main/' + rest.replace(/\/$/, '') + '" target="_blank" rel="noopener">' + rest.split('/').filter(Boolean).pop() + '</a>';
+      });
     }).join(' &middot; ');
   }
 
