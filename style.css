@@ -234,3 +234,4 @@ footer .heart { color: var(--pink); }
   .stepper, .pbar, .pmeta, .wibody { margin-left: 0; }
 }
 .s-plan { background: #c9d3d1; }
+.wsocial { font-size: 13px; color: var(--deep); background: #eef7f4; border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; }

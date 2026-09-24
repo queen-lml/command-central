@@ -108,6 +108,17 @@
     '</div>';
   }
 
+  function socialHTML(s) {
+    if (!s) return '';
+    var bits = [];
+    if (s.reels) bits.push(s.reels + ' reel' + (s.reels === 1 ? '' : 's'));
+    if (s.carousels) bits.push(s.carousels + ' carousel' + (s.carousels === 1 ? '' : 's'));
+    if (s.posts) bits.push(s.posts + ' single post' + (s.posts === 1 ? '' : 's'));
+    return '<p class="wsocial"><b>Instagram @' + esc(s.username) + ' this month:</b> ' + s.total + ' posted' +
+      (bits.length ? ' (' + bits.join(', ') + ')' : '') +
+      (s.last ? ' &middot; last post ' + esc(s.last) : '') + '</p>';
+  }
+
   function workHTML() {
     if (!work) return '<a class="back" href="#">&larr; All agents</a><p>No client work data yet.</p>';
     var chips = [
@@ -128,6 +139,7 @@
         '<div class="wchead"><h3>' + esc(c.name) + '</h3>' +
           (mine ? '<span class="who w-leslie">' + mine + ' on you</span>' : '') + '</div>' +
         (c.scope ? '<p class="wscope">' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
+        socialHTML(c.social) +
         (items.length ? items.map(itemHTML).join('') : '<p class="fine">Nothing in progress.</p>') +
       '</section>';
     }).join('');
