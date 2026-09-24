@@ -257,3 +257,12 @@ footer .heart { color: var(--pink); }
 .howit { margin: 0 0 18px; }
 @media (max-width: 520px) { .witem .pbar, .witem .pmeta, .witem .wibody, .wnext { margin-left: 0; } }
 .ymnext { color: #c81e74; font-size: 13px; }
+
+/* tabs + vendors */
+.tabs { display: flex; gap: 6px; margin: 4px 0 16px; border-bottom: 2px solid #e6dcc4; }
+.tab { padding: 9px 18px; font-weight: 700; font-size: 14px; color: var(--deep); text-decoration: none; border-radius: 10px 10px 0 0; margin-bottom: -2px; border-bottom: 2px solid transparent; }
+.tab.on { color: var(--pink); border-bottom-color: var(--pink); background: rgba(255,253,248,.7); }
+.vendor .wscope { margin-bottom: 6px; }
+.vchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.vorders { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee6d4; font-size: 14px; }
+.vorders ul { margin: 6px 0 0 18px; display: flex; flex-direction: column; gap: 4px; }

@@ -188,6 +188,7 @@
     }).join('');
     return '<a class="back" href="#">&larr; All agents</a>' +
       '<h2 class="workh">Client Work</h2>' +
+      (vendors ? tabsHTML('work') : '') +
       '<p class="worksub">What each client gets every month, and where it stands. Updated ' + esc(work.updated || '') + '.</p>' +
       '<div class="chips">' + chips.map(function (c) {
         return '<button class="chip' + (filter === c[0] ? ' on' : '') + '" data-f="' + c[0] + '">' + c[1] + ' <b>' + c[2] + '</b></button>';
@@ -198,6 +199,51 @@
       yourMoveHTML() +
       (work.howItWorks ? '<p class="fine howit">' + esc(work.howItWorks) + ' Tap any item for the why and the files.</p>' : '') +
       clients;
+  }
+
+  var vendors = data.vendors || null;
+
+  function tabsHTML(active) {
+    return '<div class="tabs">' +
+      '<a class="tab' + (active === 'work' ? ' on' : '') + '" href="#work">Clients</a>' +
+      '<a class="tab' + (active === 'vendors' ? ' on' : '') + '" href="#vendors">Vendors</a>' +
+    '</div>';
+  }
+
+  function openOrders(name) {
+    var out = [];
+    (work ? work.clients : []).forEach(function (c) {
+      c.items.forEach(function (it) {
+        var v = it.vendor || [];
+        if (typeof v === 'string') v = [v];
+        if (v.indexOf(name) !== -1 && isOpen(it)) out.push({ c: c.name, it: it });
+      });
+    });
+    return out;
+  }
+
+  function vendorsHTML() {
+    var list = vendors ? vendors.vendors : [];
+    return '<a class="back" href="#">&larr; All agents</a>' +
+      '<h2 class="workh">Vendors</h2>' +
+      '<p class="worksub">Who we pay to deliver work, what for, and why.</p>' +
+      tabsHTML('vendors') +
+      (list.length ? list.map(function (v) {
+        var orders = openOrders(v.name);
+        return '<section class="wclient vendor">' +
+          '<div class="wchead"><h3>' + esc(v.name) + '</h3>' +
+            (orders.length ? '<span class="sig g-client">' + orders.length + ' open order' + (orders.length === 1 ? '' : 's') + '</span>' : '') + '</div>' +
+          '<p class="wscope"><b>What:</b> ' + esc(v.what || '') + '</p>' +
+          (v.why ? '<p class="wscope"><b>Why:</b> ' + esc(v.why) + '</p>' : '') +
+          (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="mo">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
+          '<p class="fine">' + (v.cost ? 'Cost: ' + esc(v.cost) + ' &middot; ' : '') + (v.contact ? 'Contact: ' + esc(v.contact) : '') + '</p>' +
+          (v.where ? '<p class="fine">Links: ' + linkify(v.where) + '</p>' : '') +
+          (v.notes ? '<p class="fine">' + esc(v.notes) + '</p>' : '') +
+          (orders.length ? '<div class="vorders"><b>Open orders</b><ul>' + orders.map(function (o) {
+            return '<li>' + esc(o.c) + ' &middot; ' + esc(o.it.title) + ' <span class="fine">(' + esc(signal(o.it).text.replace(/&middot;/g, '·')) + ')</span></li>';
+          }).join('') + '</ul></div>' : '') +
+        '</section>';
+      }).join('') : '<p>No vendors yet.</p>');
   }
 
   function homeHTML() {
@@ -247,7 +293,7 @@
   function render() {
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
     var a = agentById(id);
-    view.innerHTML = id === 'work' ? workHTML() : (a ? agentHTML(a) : homeHTML());
+    view.innerHTML = id === 'work' ? workHTML() : id === 'vendors' ? vendorsHTML() : (a ? agentHTML(a) : homeHTML());
     wire();
     window.scrollTo(0, 0);
   }
