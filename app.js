@@ -162,6 +162,15 @@
       (s.last ? ' &middot; last post ' + esc(s.last) : '') + '</p>';
   }
 
+  function listingsHTML(c) {
+    if (!c.listings || !c.listings.length || filter !== 'all') return '';
+    return '<div class="wlistings"><b>' + esc(c.listingsTitle || 'Listings') + '</b><ul>' + c.listings.map(function (l) {
+      return '<li><a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.address) + '</a>' +
+        ' <span class="fine">' + esc(l.town) + (l.facts ? ' &middot; ' + esc(l.facts) : '') + '</span>' +
+        (l.status ? ' <span class="mo">' + esc(l.status) + '</span>' : '') + '</li>';
+    }).join('') + '</ul></div>';
+  }
+
   function workHTML() {
     if (!work) return '<a class="back" href="#">&larr; All agents</a><p>No client work data yet.</p>';
     var chips = [
@@ -183,6 +192,7 @@
           (mine ? '<span class="sig g-you">' + mine + ' your move</span>' : '') + '</div>' +
         (c.scope ? '<p class="wscope">' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
         socialHTML(c.social) +
+        listingsHTML(c) +
         (items.length ? items.map(itemHTML).join('') : '<p class="fine">Nothing in progress.</p>') +
       '</section>';
     }).join('');

@@ -267,3 +267,5 @@ footer .heart { color: var(--pink); }
 .vorders { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee6d4; font-size: 14px; }
 .vorders ul { margin: 6px 0 0 18px; display: flex; flex-direction: column; gap: 4px; }
 .vcontact { font-size: 14px; margin: 8px 0 6px; } .vcontact b { color: var(--pink); margin-right: 6px; }
+.wlistings { margin: 4px 0 14px; padding: 10px 14px; background: rgba(255,253,248,.8); border-radius: 14px; font-size: 14px; } .wlistings b { color: var(--pink); }
+.wlistings ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; } .wlistings a { font-weight: 700; color: var(--deep); }
