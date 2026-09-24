@@ -8,8 +8,149 @@
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
 
+  // ---- Client Work: monthly deliverables per client (data.work, from work.json) ----
+  var work = data.work || null;
+  var STAGES = [
+    { id: 'intake', label: 'Onboarding' },
+    { id: 'plan', label: 'Planning' },
+    { id: 'create', label: 'Muse writing' },
+    { id: 'review', label: 'Your review' },
+    { id: 'client', label: 'Client approval' },
+    { id: 'ready', label: 'Ready to schedule' },
+    { id: 'live', label: 'Live' }
+  ];
+  var WHO = { leslie: 'You', client: 'Client', muse: 'Muse', va: 'VA', smm: 'Social manager', nobody: 'Nobody' };
+  var filter = 'all';
+
+  function stageIndex(id) { for (var i = 0; i < STAGES.length; i++) if (STAGES[i].id === id) return i; return 0; }
+  function stageLabel(id) { return STAGES[stageIndex(id)].label; }
+
+  function daysSince(d) {
+    if (!d) return null;
+    var t = Date.parse(d + 'T12:00:00');
+    return isNaN(t) ? null : Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  }
+
+  function monthName(m) {
+    var n = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var i = m ? parseInt(m.split('-')[1], 10) - 1 : -1;
+    return n[i] ? n[i] + ' monthly' : 'monthly';
+  }
+
+  function allItems() {
+    var out = [];
+    (work ? work.clients : []).forEach(function (c) { c.items.forEach(function (it) { out.push(it); }); });
+    return out;
+  }
+  function isOpen(it) { return !!it.waitingOn && it.waitingOn !== 'nobody'; }
+  function isStuck(it) { var d = daysSince(it.since); return isOpen(it) && d !== null && d >= 14; }
+  function matches(it) {
+    if (filter === 'leslie') return isOpen(it) && it.waitingOn === 'leslie';
+    if (filter === 'client') return isOpen(it) && it.waitingOn === 'client';
+    if (filter === 'stuck') return isStuck(it);
+    return true;
+  }
+  function count(fn) { return allItems().filter(fn).length; }
+
+  function workBanner() {
+    if (!work) return '';
+    var n = count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; });
+    return '<a class="workbanner" href="#work">' +
+      '<span class="wbtitle">Client Work</span>' +
+      '<span class="wbsub">Every client\'s monthly deliverables and where each one stands</span>' +
+      '<span class="wbcount' + (n ? ' hot' : '') + '">' + n + ' waiting on you &rarr;</span>' +
+    '</a>';
+  }
+
+  function stepper(it) {
+    var cur = stageIndex(it.stage);
+    return '<ol class="stepper" aria-label="Stage: ' + esc(stageLabel(it.stage)) + '">' + STAGES.map(function (s, i) {
+      var cls = i < cur ? 'past' : (i === cur ? 'now' : '');
+      return '<li class="' + cls + '" title="' + s.label + '"><span></span></li>';
+    }).join('') + '</ol>';
+  }
+
+  function progressBar(it) {
+    if (!it.monthly) return '';
+    if (!it.target) return '<div class="pmeta"><b>' + (it.done || 0) + '</b> delivered this month (no set number yet)</div>';
+    var p = it.progress || {}, parts = '', used = 0;
+    ['live', 'ready', 'client', 'review', 'create', 'plan'].forEach(function (k) {
+      var n = p[k] || 0; if (!n) return;
+      used += n;
+      parts += '<span class="seg s-' + k + '" style="width:' + (100 * n / it.target) + '%" title="' + n + ' ' + stageLabel(k).toLowerCase() + '"></span>';
+    });
+    var legend = ['live', 'ready', 'client', 'review', 'create', 'plan'].filter(function (k) { return p[k]; })
+      .map(function (k) { return '<span class="lg"><i class="s-' + k + '"></i>' + p[k] + ' ' + stageLabel(k).toLowerCase() + '</span>'; }).join('');
+    if (used < it.target) legend += '<span class="lg"><i class="s-none"></i>' + (it.target - used) + ' not started</span>';
+    return '<div class="pbar">' + parts + '</div>' +
+      '<div class="pmeta"><b>' + (it.done || 0) + ' of ' + it.target + '</b> delivered this month' + (legend ? ' &middot; ' + legend : '') + '</div>';
+  }
+
+  function itemHTML(it) {
+    var d = daysSince(it.since), open = isOpen(it);
+    var age = (open && d !== null) ? '<span class="age' + (d >= 14 ? ' red' : d >= 7 ? ' amber' : '') + '">' + (d === 0 ? 'today' : d + 'd') + '</span>' : '';
+    var who = open && it.waitingOn && it.waitingOn !== 'nobody'
+      ? '<span class="who w-' + it.waitingOn + '">Waiting on ' + esc(WHO[it.waitingOn] || it.waitingOn) + '</span>' : '';
+    return '<div class="witem' + (open ? '' : ' done') + '">' +
+      '<button class="wihead">' +
+        '<span class="wtype">' + esc(it.type || '') + '</span>' +
+        '<span class="wtitle">' + esc(it.title) + (it.monthly ? ' <span class="mo">' + esc(monthName(it.month)) + '</span>' : '') + '</span>' +
+        '<span class="wstage st-' + it.stage + '">' + esc(stageLabel(it.stage)) + '</span>' +
+        who + age +
+      '</button>' +
+      stepper(it) + progressBar(it) +
+      '<div class="wibody">' +
+        (it.why ? '<p><b>Why it\'s here:</b> ' + esc(it.why) + '</p>' : '') +
+        (it.next ? '<p><b>Next step:</b> ' + esc(it.next) + '</p>' : '') +
+        (it.since ? '<p class="fine">In this stage since ' + esc(it.since) + '</p>' : '') +
+        (it.where ? '<p class="fine">Files: <code>' + esc(it.where) + '</code></p>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function workHTML() {
+    if (!work) return '<a class="back" href="#">&larr; All agents</a><p>No client work data yet.</p>';
+    var chips = [
+      ['all', 'Everything', allItems().length],
+      ['leslie', 'Waiting on you', count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; })],
+      ['client', 'Waiting on clients', count(function (it) { return isOpen(it) && it.waitingOn === 'client'; })],
+      ['stuck', 'Stuck 14+ days', count(isStuck)]
+    ];
+    var clients = work.clients.map(function (c) {
+      var rank = { leslie: 0, client: 1, va: 2, smm: 2, muse: 3, nobody: 4 };
+      var items = c.items.filter(matches).slice().sort(function (a, b) {
+        var ra = a.waitingOn in rank ? rank[a.waitingOn] : 4, rb = b.waitingOn in rank ? rank[b.waitingOn] : 4;
+        return ra - rb || (daysSince(b.since) || 0) - (daysSince(a.since) || 0);
+      });
+      if (!items.length && filter !== 'all') return '';
+      var mine = c.items.filter(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; }).length;
+      return '<section class="wclient">' +
+        '<div class="wchead"><h3>' + esc(c.name) + '</h3>' +
+          (mine ? '<span class="who w-leslie">' + mine + ' on you</span>' : '') + '</div>' +
+        (c.scope ? '<p class="wscope">' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
+        (items.length ? items.map(itemHTML).join('') : '<p class="fine">Nothing in progress.</p>') +
+      '</section>';
+    }).join('');
+    return '<a class="back" href="#">&larr; All agents</a>' +
+      '<h2 class="workh">Client Work</h2>' +
+      '<p class="worksub">What each client gets every month, and where it stands. Updated ' + esc(work.updated || '') + '.</p>' +
+      '<div class="chips">' + chips.map(function (c) {
+        return '<button class="chip' + (filter === c[0] ? ' on' : '') + '" data-f="' + c[0] + '">' + c[1] + ' <b>' + c[2] + '</b></button>';
+      }).join('') + '</div>' +
+      '<details class="howto"><summary>How the stages work</summary><ol>' +
+        '<li><b>Onboarding</b>: intake form, profile, access.</li>' +
+        '<li><b>Planning</b>: topics, calendar, strategy.</li>' +
+        '<li><b>Muse writing</b>: drafts being written.</li>' +
+        '<li><b>Your review</b>: Leslie reads and approves before anything goes out.</li>' +
+        '<li><b>Client approval</b>: sent to the client, waiting on their yes or changes.</li>' +
+        '<li><b>Ready to schedule</b>: approved, needs to be pushed to WordPress or scheduled.</li>' +
+        '<li><b>Live</b>: published or delivered.</li>' +
+      '</ol><p class="fine">The number next to an item is how many days it has sat in its current stage. Amber at 7, red at 14.</p></details>' +
+      clients;
+  }
+
   function homeHTML() {
-    return '<div class="grid">' + data.agents.map(function (a) {
+    return workBanner() + '<div class="grid">' + data.agents.map(function (a) {
       return '<article class="card" data-agent="' + a.id + '">' +
         '<div class="portrait"><img src="' + a.avatar + '" alt="' + a.name + '"><div class="fade"></div><div class="name">' + a.name + '</div></div>' +
         '<div class="body">' +
@@ -55,7 +196,7 @@
   function render() {
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
     var a = agentById(id);
-    view.innerHTML = a ? agentHTML(a) : homeHTML();
+    view.innerHTML = id === 'work' ? workHTML() : (a ? agentHTML(a) : homeHTML());
     wire();
     window.scrollTo(0, 0);
   }
@@ -69,6 +210,12 @@
     });
     view.querySelectorAll('.voice').forEach(function (btn) {
       btn.addEventListener('click', function (e) { e.stopPropagation(); playVoice(btn.getAttribute('data-voice')); });
+    });
+    view.querySelectorAll('.chip').forEach(function (b) {
+      b.addEventListener('click', function () { filter = b.getAttribute('data-f'); view.innerHTML = workHTML(); wire(); });
+    });
+    view.querySelectorAll('.witem').forEach(function (w) {
+      w.querySelector('.wihead').addEventListener('click', function () { w.classList.toggle('open'); });
     });
     view.querySelectorAll('.client').forEach(function (cl) {
       cl.querySelector('.clienthead').addEventListener('click', function () { cl.classList.toggle('open'); });
