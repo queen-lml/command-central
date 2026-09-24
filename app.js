@@ -70,6 +70,8 @@
     }).join('') + '</ol>';
   }
 
+  function segLabel(k) { return k === 'ready' ? 'scheduled / ready' : stageLabel(k).toLowerCase(); }
+
   function progressBar(it) {
     if (!it.monthly) return '';
     if (!it.target) return '<div class="pmeta"><b>' + (it.done || 0) + '</b> delivered this month (no set number yet)</div>';
@@ -77,10 +79,10 @@
     ['live', 'ready', 'client', 'review', 'create', 'plan'].forEach(function (k) {
       var n = p[k] || 0; if (!n) return;
       used += n;
-      parts += '<span class="seg s-' + k + '" style="width:' + (100 * n / it.target) + '%" title="' + n + ' ' + stageLabel(k).toLowerCase() + '"></span>';
+      parts += '<span class="seg s-' + k + '" style="width:' + (100 * n / it.target) + '%" title="' + n + ' ' + segLabel(k) + '"></span>';
     });
     var legend = ['live', 'ready', 'client', 'review', 'create', 'plan'].filter(function (k) { return p[k]; })
-      .map(function (k) { return '<span class="lg"><i class="s-' + k + '"></i>' + p[k] + ' ' + stageLabel(k).toLowerCase() + '</span>'; }).join('');
+      .map(function (k) { return '<span class="lg"><i class="s-' + k + '"></i>' + p[k] + ' ' + segLabel(k) + '</span>'; }).join('');
     if (used < it.target) legend += '<span class="lg"><i class="s-none"></i>' + (it.target - used) + ' not started</span>';
     return '<div class="pbar">' + parts + '</div>' +
       '<div class="pmeta"><b>' + (it.done || 0) + ' of ' + it.target + '</b> delivered this month' + (legend ? ' &middot; ' + legend : '') + '</div>';
@@ -94,6 +96,7 @@
     if (w === 'client') return { cls: 'client', text: 'Waiting on client' + age };
     if (w === 'muse' || w === 'va' || w === 'smm') return { cls: 'team', text: (WHO[w] || w) + ' is on it' };
     if (it.stage === 'live') return { cls: 'done', text: 'Done' };
+    if (it.stage === 'ready') return { cls: 'done', text: 'Scheduled' };
     return { cls: 'parked', text: 'Parked' };
   }
 
