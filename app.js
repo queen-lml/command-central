@@ -236,7 +236,9 @@
           '<p class="wscope"><b>What:</b> ' + esc(v.what || '') + '</p>' +
           (v.why ? '<p class="wscope"><b>Why:</b> ' + esc(v.why) + '</p>' : '') +
           (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="mo">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
-          '<p class="fine">' + (v.cost ? 'Cost: ' + esc(v.cost) + ' &middot; ' : '') + (v.contact ? 'Contact: ' + esc(v.contact) : '') + '</p>' +
+          '<div class="vcontact"><b>Contact</b> ' + (v.contact ? linkify(v.contact).replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>') : '<span class="fine">not added yet</span>') +
+            (v.phone ? ' &middot; <a href="tel:' + esc(v.phone) + '">' + esc(v.phone) + '</a>' : '') + '</div>' +
+          (v.cost ? '<p class="fine">Cost: ' + esc(v.cost) + '</p>' : '') +
           (v.where ? '<p class="fine">Links: ' + linkify(v.where) + '</p>' : '') +
           (v.notes ? '<p class="fine">' + esc(v.notes) + '</p>' : '') +
           (orders.length ? '<div class="vorders"><b>Open orders</b><ul>' + orders.map(function (o) {

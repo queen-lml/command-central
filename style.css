@@ -266,3 +266,4 @@ footer .heart { color: var(--pink); }
 .vchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .vorders { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee6d4; font-size: 14px; }
 .vorders ul { margin: 6px 0 0 18px; display: flex; flex-direction: column; gap: 4px; }
+.vcontact { font-size: 14px; margin: 8px 0 6px; } .vcontact b { color: var(--pink); margin-right: 6px; }
