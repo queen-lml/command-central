@@ -86,26 +86,52 @@
       '<div class="pmeta"><b>' + (it.done || 0) + ' of ' + it.target + '</b> delivered this month' + (legend ? ' &middot; ' + legend : '') + '</div>';
   }
 
+  // One signal per item: who has the next move.
+  function signal(it) {
+    var d = daysSince(it.since), w = it.waitingOn || 'nobody';
+    var age = (d !== null && d >= 1) ? ' &middot; ' + d + (d === 1 ? ' day' : ' days') : '';
+    if (w === 'leslie') return { cls: 'you', text: 'Your move' + age };
+    if (w === 'client') return { cls: 'client', text: 'Waiting on client' + age };
+    if (w === 'muse' || w === 'va' || w === 'smm') return { cls: 'team', text: (WHO[w] || w) + ' is on it' };
+    if (it.stage === 'live') return { cls: 'done', text: 'Done' };
+    return { cls: 'parked', text: 'Parked' };
+  }
+
   function itemHTML(it) {
-    var d = daysSince(it.since), open = isOpen(it);
-    var age = (open && d !== null) ? '<span class="age' + (d >= 14 ? ' red' : d >= 7 ? ' amber' : '') + '">' + (d === 0 ? 'today' : d + 'd') + '</span>' : '';
-    var who = open && it.waitingOn && it.waitingOn !== 'nobody'
-      ? '<span class="who w-' + it.waitingOn + '">Waiting on ' + esc(WHO[it.waitingOn] || it.waitingOn) + '</span>' : '';
-    return '<div class="witem' + (open ? '' : ' done') + '">' +
+    var sg = signal(it), d = daysSince(it.since);
+    var late = (sg.cls === 'you' || sg.cls === 'client') && d !== null && d >= 14;
+    return '<div class="witem s-' + sg.cls + (sg.cls === 'done' ? ' done' : '') + '">' +
       '<button class="wihead">' +
-        '<span class="wtype">' + esc(it.type || '') + '</span>' +
+        '<span class="dot d-' + sg.cls + '"></span>' +
         '<span class="wtitle">' + esc(it.title) + (it.monthly ? ' <span class="mo">' + esc(monthName(it.month)) + '</span>' : '') + '</span>' +
-        '<span class="wstage st-' + it.stage + '">' + esc(stageLabel(it.stage)) + '</span>' +
-        who + age +
+        '<span class="sig g-' + sg.cls + (late ? ' late' : '') + '">' + sg.text + '</span>' +
       '</button>' +
-      stepper(it) + progressBar(it) +
+      (sg.cls === 'you' && it.next ? '<p class="wnext">&rarr; ' + esc(it.next) + '</p>' : '') +
+      progressBar(it) +
       '<div class="wibody">' +
-        (it.why ? '<p><b>Why it\'s here:</b> ' + esc(it.why) + '</p>' : '') +
-        (it.next ? '<p><b>Next step:</b> ' + esc(it.next) + '</p>' : '') +
-        (it.since ? '<p class="fine">In this stage since ' + esc(it.since) + '</p>' : '') +
+        (it.why ? '<p><b>Why:</b> ' + esc(it.why) + '</p>' : '') +
+        (it.next && sg.cls !== 'you' ? '<p><b>Next step:</b> ' + esc(it.next) + '</p>' : '') +
+        '<p class="fine">Stage: ' + esc(stageLabel(it.stage)) + (it.since ? ' since ' + esc(it.since) : '') +
+          (it.type ? ' &middot; ' + esc(it.type) : '') + '</p>' +
         (it.where ? '<p class="fine">Files: <code>' + esc(it.where) + '</code></p>' : '') +
       '</div>' +
     '</div>';
+  }
+
+  function yourMoveHTML() {
+    var rows = [];
+    work.clients.forEach(function (c) {
+      c.items.forEach(function (it) { if (it.waitingOn === 'leslie') rows.push({ c: c.name, it: it }); });
+    });
+    if (!rows.length) return '<div class="yourmove empty"><b>Your move:</b> nothing is waiting on you. 🎉</div>';
+    rows.sort(function (a, b) { return (daysSince(b.it.since) || 0) - (daysSince(a.it.since) || 0); });
+    return '<div class="yourmove"><h3><span class="dot d-you"></span>Your move &middot; ' + rows.length + '</h3><ol>' +
+      rows.map(function (r) {
+        var d = daysSince(r.it.since);
+        return '<li><b>' + esc(r.c) + '</b> &middot; ' + esc(r.it.title) +
+          (r.it.next ? '<br><span class="ymnext">&rarr; ' + esc(r.it.next) + '</span>' : '') +
+          (d ? ' <span class="fine">(' + d + (d === 1 ? ' day' : ' days') + ')</span>' : '') + '</li>';
+      }).join('') + '</ol></div>';
   }
 
   function socialHTML(s) {
@@ -124,7 +150,7 @@
     if (!work) return '<a class="back" href="#">&larr; All agents</a><p>No client work data yet.</p>';
     var chips = [
       ['all', 'Everything', allItems().length],
-      ['leslie', 'Waiting on you', count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; })],
+      ['leslie', 'Your move', count(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; })],
       ['client', 'Waiting on clients', count(function (it) { return isOpen(it) && it.waitingOn === 'client'; })],
       ['stuck', 'Stuck 14+ days', count(isStuck)]
     ];
@@ -138,7 +164,7 @@
       var mine = c.items.filter(function (it) { return isOpen(it) && it.waitingOn === 'leslie'; }).length;
       return '<section class="wclient">' +
         '<div class="wchead"><h3>' + esc(c.name) + '</h3>' +
-          (mine ? '<span class="who w-leslie">' + mine + ' on you</span>' : '') + '</div>' +
+          (mine ? '<span class="sig g-you">' + mine + ' your move</span>' : '') + '</div>' +
         (c.scope ? '<p class="wscope">' + esc(c.scope) + (c.cadence ? ' &middot; ' + esc(c.cadence) : '') + '</p>' : '') +
         socialHTML(c.social) +
         (items.length ? items.map(itemHTML).join('') : '<p class="fine">Nothing in progress.</p>') +
@@ -150,15 +176,11 @@
       '<div class="chips">' + chips.map(function (c) {
         return '<button class="chip' + (filter === c[0] ? ' on' : '') + '" data-f="' + c[0] + '">' + c[1] + ' <b>' + c[2] + '</b></button>';
       }).join('') + '</div>' +
-      '<details class="howto"><summary>How the stages work</summary><ol>' +
-        '<li><b>Onboarding</b>: intake form, profile, access.</li>' +
-        '<li><b>Planning</b>: topics, calendar, strategy.</li>' +
-        '<li><b>Muse writing</b>: drafts being written.</li>' +
-        '<li><b>Your review</b>: Leslie reads and approves before anything goes out.</li>' +
-        '<li><b>Client approval</b>: sent to the client, waiting on their yes or changes.</li>' +
-        '<li><b>Ready to schedule</b>: approved, needs to be pushed to WordPress or scheduled.</li>' +
-        '<li><b>Live</b>: published or delivered.</li>' +
-      '</ol>' + (work.howItWorks ? '<p>' + esc(work.howItWorks) + '</p>' : '') + '<p class="fine">The number next to an item is how many days it has sat in its current stage. Amber at 7, red at 14.</p></details>' +
+      '<p class="legend"><span><span class="dot d-you"></span>Your move</span><span><span class="dot d-client"></span>Waiting on client</span>' +
+        '<span><span class="dot d-team"></span>Muse / team is on it</span><span><span class="dot d-done"></span>Done</span>' +
+        '<span><span class="dot d-parked"></span>Parked</span></p>' +
+      yourMoveHTML() +
+      (work.howItWorks ? '<p class="fine howit">' + esc(work.howItWorks) + ' Tap any item for the why and the files.</p>' : '') +
       clients;
   }
 
