@@ -251,24 +251,38 @@
     return out;
   }
 
-  function vendorsHTML() {
+  function vendorHTML(v) {
+    var orders = openOrders(v.name);
+    return '<div class="chead"><p class="cat">' + esc(v.category || 'Vendors') + '</p><h2>' + esc(v.name) + '</h2>' +
+        (v.what ? '<p>' + esc(v.what) + '</p>' : '') + '</div>' +
+      (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="tag t-later">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
+      '<section class="wsec vendor"><div class="sh"><span class="num">1</span><h3>About</h3></div>' +
+        (v.why ? '<p><b>Why we use them:</b> ' + esc(v.why) + '</p>' : '') +
+        '<p><b>Contact:</b> ' + (v.contact ? linkify(v.contact).replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>') : '<span class="fine">not added yet</span>') +
+          (v.phone ? ' &middot; <a href="tel:' + esc(v.phone) + '">' + esc(v.phone) + '</a>' : '') + '</p>' +
+        (v.cost ? '<p><b>Cost:</b> ' + esc(v.cost) + '</p>' : '') +
+        (v.notes ? '<p class="fine">' + esc(v.notes) + '</p>' : '') +
+      '</section>' +
+      (v.where ? '<section class="wsec vendor"><div class="sh"><span class="num">2</span><h3>Sheets and links</h3></div>' +
+        '<ul class="vlinks">' + v.where.split(' | ').map(function (l) { return '<li>' + linkify(l) + '</li>'; }).join('') + '</ul></section>' : '') +
+      sectionHTML(v.where ? 3 : 2, 'Open orders', plural(orders.length, 'order'), orders.map(function (o) { return o.it; }),
+        'No open orders.', function (it) { return orders.filter(function (o) { return o.it === it; })[0].c; });
+  }
+
+  function vendorsHTML(key) {
     var list = vendors ? vendors.vendors : [];
-    return '<div class="page"><div class="chead"><h2>Vendors</h2><p>Who we pay to deliver work, what for, and why.</p></div>' +
-      (list.length ? list.map(function (v, i) {
-        var orders = openOrders(v.name);
-        return '<section class="wsec vendor"><div class="sh"><span class="num">' + (i + 1) + '</span><h3>' + esc(v.name) + '</h3>' +
-            (orders.length ? '<small><span class="tag t-vendor">' + plural(orders.length, 'open order') + '</span></small>' : '') + '</div>' +
-          '<p><b>What:</b> ' + esc(v.what || '') + '</p>' +
-          (v.why ? '<p><b>Why:</b> ' + esc(v.why) + '</p>' : '') +
-          (v.clients && v.clients.length ? '<p class="vchips">' + v.clients.map(function (c) { return '<span class="tag t-later">' + esc(c) + '</span>'; }).join(' ') + '</p>' : '') +
-          '<p><b>Contact:</b> ' + (v.contact ? linkify(v.contact).replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>') : '<span class="fine">not added yet</span>') +
-            (v.phone ? ' &middot; <a href="tel:' + esc(v.phone) + '">' + esc(v.phone) + '</a>' : '') + '</p>' +
-          (v.cost ? '<p><b>Cost:</b> ' + esc(v.cost) + '</p>' : '') +
-          (v.where ? '<p><b>Links:</b> ' + linkify(v.where) + '</p>' : '') +
-          (v.notes ? '<p class="fine">' + esc(v.notes) + '</p>' : '') +
-          (orders.length ? '<div class="vorders">' + orders.map(function (o) { return rowHTML(o.it, o.c); }).join('') + '</div>' : '') +
-        '</section>';
-      }).join('') : '<p class="empty">No vendors yet.</p>') + '</div>';
+    if (!list.length) return '<div class="page"><p class="empty">No vendors yet.</p></div>';
+    var cats = [];
+    list.forEach(function (v) { var c = v.category || 'Vendors'; if (cats.indexOf(c) === -1) cats.push(c); });
+    var cur = list.filter(function (v) { return slug(v.name) === key; })[0] || list[0];
+    return '<nav class="pills">' + cats.map(function (cat) {
+        return '<span class="pcat">' + esc(cat) + '</span>' + list.filter(function (v) { return (v.category || 'Vendors') === cat; }).map(function (v) {
+          var n = openOrders(v.name).length;
+          return '<a class="pill' + (v === cur ? ' on' : '') + '" href="#vendors/' + slug(v.name) + '">' + esc(v.name) +
+            (n ? ' <b>' + n + '</b>' : '') + '</a>';
+        }).join('');
+      }).join('') + '</nav>' +
+      '<div class="page">' + vendorHTML(cur) + '</div>';
   }
 
   // ---- Agents ----
@@ -326,7 +340,7 @@
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
     var a = agentById(id), tab = 'agents';
     if (id === 'work' || id.indexOf('work/') === 0 || id.indexOf('team/') === 0) { tab = 'work'; view.innerHTML = workHTML(id); }
-    else if (id === 'vendors') { tab = 'vendors'; view.innerHTML = vendorsHTML(); }
+    else if (id === 'vendors' || id.indexOf('vendors/') === 0) { tab = 'vendors'; view.innerHTML = vendorsHTML(id.replace(/^vendors\/?/, '')); }
     else view.innerHTML = a ? agentHTML(a) : homeHTML();
     document.querySelectorAll('.topnav a').forEach(function (l) { l.classList.toggle('on', l.getAttribute('data-tab') === tab); });
     wire();

@@ -148,3 +148,12 @@ footer { text-align: center; color: #999; font-size: 12px; padding: 30px 0 40px;
   .agentmeta .voice { margin: 0 auto; }
   .sh small { display: none; }
 }
+
+/* vendor tabs */
+.pcat { align-self: center; white-space: nowrap; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pink-dark); padding: 0 4px 0 2px; }
+.pcat ~ .pcat { margin-left: 14px; padding-left: 16px; border-left: 1px solid var(--line); }
+.chead .cat { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pink-dark); margin: 0 0 4px; }
+.vchips { margin-top: 14px; }
+.vlinks { list-style: none; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+.vlinks li { padding-left: 16px; position: relative; }
+.vlinks li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--pink); }
