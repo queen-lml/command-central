@@ -12,6 +12,28 @@
   // ---- Client Work (data.work, from work.json) ----
   var work = data.work || null;
   var vendors = data.vendors || null;
+
+  // Check-offs: "Mark done" on a Mine item saves to work.json on GitHub through
+  // /api/done (functions/api/done.js). Until the next build, this device keeps
+  // the item shown as done from localStorage.
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+  function pending() { try { return JSON.parse(store('cc_done') || '{}'); } catch (e) { return {}; } }
+  function markLocal(it, date, note) {
+    it.stage = 'live'; it.waitingOn = 'nobody'; it.since = date; it.next = 'Nothing.'; delete it.due;
+    it.why = 'Checked off by you ' + date + (note ? ': ' + note : '.');
+    if (it.monthly && it.target) it.done = it.target;
+  }
+  if (work) {
+    var _p = pending(), _keep = {};
+    work.clients.forEach(function (c) {
+      c.items.forEach(function (it) {
+        it._client = c.name;
+        var k = c.name + '|' + it.title;
+        if (_p[k] && it.waitingOn === 'leslie') { markLocal(it, _p[k].date, _p[k].note); _keep[k] = _p[k]; }
+      });
+    });
+    store('cc_done', JSON.stringify(_keep));
+  }
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var today = new Date();
   var THIS_MONTH = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
@@ -96,6 +118,9 @@
         (it.next && !done ? '<p><b>Next:</b> ' + esc(it.next) + '</p>' : '') +
         (it.where ? '<p><b>Links:</b> ' + linkify(it.where) + '</p>' : '') +
         (it.vendor ? '<p><b>Vendor:</b> ' + esc([].concat(it.vendor).join(', ')) + '</p>' : '') +
+        (t.cls === 'mine' && it._client ? '<div class="checkoff" data-client="' + esc(it._client) + '" data-title="' + esc(it.title) + '">' +
+          '<input type="text" class="conote" maxlength="500" placeholder="Optional note, e.g. what you set up" aria-label="Note">' +
+          '<button type="button" class="cobtn">Mark done</button><span class="comsg" role="status"></span></div>' : '') +
       '</div>' +
     '</div>';
   }
@@ -362,6 +387,38 @@
     view.querySelectorAll('.row').forEach(function (r) {
       r.querySelector('.rhead').addEventListener('click', function () { r.classList.toggle('open'); });
     });
+    view.querySelectorAll('.checkoff').forEach(function (box) {
+      var btn = box.querySelector('.cobtn'), msg = box.querySelector('.comsg');
+      btn.addEventListener('click', function () { checkOff(box, btn, msg); });
+    });
+  }
+
+  function checkOff(box, btn, msg) {
+    var client = box.getAttribute('data-client'), title = box.getAttribute('data-title');
+    var note = box.querySelector('.conote').value.trim();
+    var key = store('cc_key');
+    if (!key) {
+      key = window.prompt('Passcode for check-offs (asked once on this device):');
+      if (!key) return;
+    }
+    btn.disabled = true; msg.textContent = 'Saving...';
+    fetch('/api/done', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-cc-key': key },
+      body: JSON.stringify({ client: client, title: title, note: note })
+    }).then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.status === 401) { store('cc_key', null); throw new Error('Wrong passcode. Tap Mark done to try again.'); }
+        if (!res.j.ok) throw new Error(res.j.error || 'Could not save.');
+        store('cc_key', key);
+        var p = pending(); p[client + '|' + title] = { date: res.j.date, note: note }; store('cc_done', JSON.stringify(p));
+        work.clients.forEach(function (c) {
+          if (c.name !== client) return;
+          c.items.forEach(function (it) { if (it.title === title) markLocal(it, res.j.date, note); });
+        });
+        render();
+      })
+      .catch(function (e) { btn.disabled = false; msg.textContent = e.message || 'Could not save. Check your connection.'; });
   }
 
   var _g = window.CC_DATA && window.CC_DATA.generated;
