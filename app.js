@@ -343,7 +343,7 @@
   // One square per day. Filled = published, outlined = scheduled, faint = nothing.
   function calMonthHTML(y, m, byDay) {
     var first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
-    var lead = (first.getDay() + 6) % 7;                 // weeks start Monday
+    var lead = first.getDay();                           // weeks start Sunday, as Leslie's other calendars do
     var cells = '', i, k, p, cls, dt;
     for (i = 0; i < lead; i++) cells += '<span class="cday pad"></span>';
     for (i = 1; i <= days; i++) {
@@ -357,7 +357,7 @@
         '<b>' + i + '</b>' + (p ? '<i></i>' : '') + '</span>';
     }
     return '<div class="cal"><div class="calhd">' + MONTHS[m] + ' ' + y + '</div>' +
-      '<div class="dow">' + ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(function (d) {
+      '<div class="dow">' + ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(function (d) {
         return '<span>' + d + '</span>';
       }).join('') + '</div>' +
       '<div class="cgrid">' + cells + '</div></div>';
