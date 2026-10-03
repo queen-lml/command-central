@@ -202,7 +202,10 @@
     var rows = mineItems();
     var by = {};
     rows.forEach(function (r) { by[r.it.title] = r.c.name; });
-    var its = rows.map(function (r) { return r.it; }).sort(sortRows);
+    // Leslie's own business admin (personal: true in work.json) sorts after client work.
+    var its = rows.map(function (r) { return r.it; }).sort(function (a, b) {
+      return (a.personal ? 1 : 0) - (b.personal ? 1 : 0) || sortRows(a, b);
+    });
     return '<div class="chead"><h2>My list</h2><p>Everything waiting on you, across every client. Tap a client above for their full page.</p></div>' +
       sectionHTML(1, 'Mine', plural(its.length, 'item'), its, 'Nothing is waiting on you. 🎉', function (it) { return by[it.title]; });
   }
