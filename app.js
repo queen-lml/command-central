@@ -12,6 +12,28 @@
   // ---- Client Work (data.work, from work.json) ----
   var work = data.work || null;
   var vendors = data.vendors || null;
+
+  // Check-offs: "Mark done" on a Mine item saves to work.json on GitHub through
+  // /api/done (functions/api/done.js). Until the next build, this device keeps
+  // the item shown as done from localStorage.
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+  function pending() { try { return JSON.parse(store('cc_done') || '{}'); } catch (e) { return {}; } }
+  function markLocal(it, date, note) {
+    it.stage = 'live'; it.waitingOn = 'nobody'; it.since = date; it.next = 'Nothing.'; delete it.due;
+    it.why = 'Checked off by you ' + date + (note ? ': ' + note : '.');
+    if (it.monthly && it.target) it.done = it.target;
+  }
+  if (work) {
+    var _p = pending(), _keep = {};
+    work.clients.forEach(function (c) {
+      c.items.forEach(function (it) {
+        it._client = c.name;
+        var k = c.name + '|' + it.title;
+        if (_p[k] && it.waitingOn === 'leslie') { markLocal(it, _p[k].date, _p[k].note); _keep[k] = _p[k]; }
+      });
+    });
+    store('cc_done', JSON.stringify(_keep));
+  }
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var today = new Date();
   var THIS_MONTH = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
@@ -82,9 +104,16 @@
 
   function rowHTML(it, clientName) {
     var t = tag(it), done = t.cls === 'done';
-    var count = it.monthly && it.target ? ' <b>' + (it.done || 0) + ' of ' + it.target + '</b>' : '';
-    var bar = it.monthly && it.target && it.done && !done
-      ? '<div class="bar"><i style="width:' + Math.min(100, 100 * it.done / it.target) + '%"></i></div>' : '';
+    // Work that is written and scheduled is not done, but it is not nothing
+    // either. It gets the pale half of the bar so a month that looks like
+    // "0 of 18" still shows the nine already in the queue.
+    var ready = (it.progress && it.progress.ready) || 0;
+    var count = it.monthly && it.target
+      ? ' <b>' + (it.done || 0) + ' of ' + it.target + '</b>' + (ready && !done ? ' &middot; ' + ready + ' scheduled' : '') : '';
+    function pct(n) { return Math.max(0, Math.min(100, 100 * n / it.target)); }
+    var bar = it.monthly && it.target && (it.done || ready) && !done
+      ? '<div class="bar"><i style="width:' + pct(it.done || 0) + '%"></i>' +
+        (ready ? '<u style="width:' + Math.min(pct(ready), 100 - pct(it.done || 0)) + '%"></u>' : '') + '</div>' : '';
     return '<div class="row' + (done ? ' isdone' : '') + '">' +
       '<button class="rhead">' +
         '<span class="rt">' + (clientName ? '<span class="rclient">' + esc(clientName) + '</span>' : '') + esc(it.title) + '</span>' +
@@ -93,9 +122,13 @@
       '</button>' +
       '<div class="more">' +
         (it.why ? '<p><b>Why:</b> ' + esc(it.why) + '</p>' : '') +
+        (it.liveNote ? '<p>' + esc(it.liveNote) + (it.type === 'blog' ? ' <a href="#blog">See the schedule</a>' : '') + '</p>' : '') +
         (it.next && !done ? '<p><b>Next:</b> ' + esc(it.next) + '</p>' : '') +
         (it.where ? '<p><b>Links:</b> ' + linkify(it.where) + '</p>' : '') +
         (it.vendor ? '<p><b>Vendor:</b> ' + esc([].concat(it.vendor).join(', ')) + '</p>' : '') +
+        (t.cls === 'mine' && it._client ? '<div class="checkoff" data-client="' + esc(it._client) + '" data-title="' + esc(it.title) + '">' +
+          '<input type="text" class="conote" maxlength="500" placeholder="Optional note, e.g. what you set up" aria-label="Note">' +
+          '<button type="button" class="cobtn">Mark done</button><span class="comsg" role="status"></span></div>' : '') +
       '</div>' +
     '</div>';
   }
@@ -288,6 +321,141 @@
       '<div class="page">' + vendorHTML(cur) + '</div>';
   }
 
+  // ---- Blog (data.blog, read live from WordPress at build time) ----
+  // Three questions, one page: what went out this month, what is queued, and
+  // what lands on which day. The calendar answers the third one at a glance,
+  // which a list of dates never does.
+  var blog = data.blog || null;
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(dt) { return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate()); }
+  function parseYmd(s) { return new Date(s + 'T12:00:00'); }
+  function longDate(s) {
+    return parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  function daysUntil(s) { return Math.round((parseYmd(s) - parseYmd(ymd(today))) / 86400000); }
+  function whenText(n) {
+    if (n === 0) return 'Today';
+    if (n === 1) return 'Tomorrow';
+    return 'in ' + plural(n, 'day');
+  }
+
+  // One square per day. Filled = published, outlined = scheduled, faint = nothing.
+  function calMonthHTML(y, m, byDay) {
+    var first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+    var lead = (first.getDay() + 6) % 7;                 // weeks start Monday
+    var cells = '', i, k, p, cls, dt;
+    for (i = 0; i < lead; i++) cells += '<span class="cday pad"></span>';
+    for (i = 1; i <= days; i++) {
+      dt = new Date(y, m, i);
+      k = ymd(dt);
+      p = byDay[k];
+      cls = 'cday' + (dt.getDay() % 6 === 0 ? ' wknd' : '');
+      if (p) cls += p.kind === 'published' ? ' pub' : ' sched';
+      if (k === ymd(today)) cls += ' now';
+      cells += '<span class="' + cls + '"' + (p ? ' title="' + esc(p.title) + '"' : '') + '>' +
+        '<b>' + i + '</b>' + (p ? '<i></i>' : '') + '</span>';
+    }
+    return '<div class="cal"><div class="calhd">' + MONTHS[m] + ' ' + y + '</div>' +
+      '<div class="dow">' + ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(function (d) {
+        return '<span>' + d + '</span>';
+      }).join('') + '</div>' +
+      '<div class="cgrid">' + cells + '</div></div>';
+  }
+
+  function calendarsHTML(published, scheduled) {
+    var byDay = {}, months = [], seen = {};
+    function put(list, kind) {
+      list.forEach(function (p) {
+        byDay[p.date] = { kind: kind, title: p.title };
+        var mk = p.date.slice(0, 7);
+        if (!seen[mk]) { seen[mk] = 1; months.push(mk); }
+      });
+    }
+    put(published, 'published');
+    put(scheduled, 'scheduled');
+    // This month and next are always drawn, even when empty. An empty November
+    // is the useful answer to "what is dripping out", not a missing panel.
+    [new Date(today.getFullYear(), today.getMonth(), 1),
+     new Date(today.getFullYear(), today.getMonth() + 1, 1)].forEach(function (dt) {
+      var mk = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1);
+      if (!seen[mk]) { seen[mk] = 1; months.push(mk); }
+    });
+    months.sort();
+    return '<div class="cals">' + months.map(function (mk) {
+      return calMonthHTML(+mk.slice(0, 4), +mk.slice(5, 7) - 1, byDay);
+    }).join('') + '</div>' +
+      '<p class="callegend"><span class="lg pub"></span> Published' +
+      ' <span class="lg sched"></span> Scheduled' +
+      ' <span class="lg none"></span> Nothing booked</p>';
+  }
+
+  function postRowHTML(p, kind) {
+    var n = kind === 'scheduled' ? daysUntil(p.date) : null;
+    return '<div class="brow ' + kind + '">' +
+      '<span class="bdate"><b>' + parseYmd(p.date).getDate() + '</b>' +
+        parseYmd(p.date).toLocaleDateString('en-US', { month: 'short' }) + '</span>' +
+      '<span class="btitle"><a href="' + esc(p.link) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a>' +
+        '<small>' + longDate(p.date) + (n !== null ? ' &middot; ' + whenText(n) : '') + '</small></span>' +
+      '<span class="tag ' + (kind === 'published' ? 't-done' : kind === 'scheduled' ? 't-sched' : 't-muse') + '">' +
+        (kind === 'published' ? 'Live' : kind === 'scheduled' ? 'Queued' : 'Draft') + '</span>' +
+    '</div>';
+  }
+
+  function postListHTML(list, kind, empty) {
+    return list.length ? list.map(function (p) { return postRowHTML(p, kind); }).join('')
+      : '<p class="empty">' + empty + '</p>';
+  }
+
+  function blogHTML() {
+    if (!blog) return '<div class="page"><p class="empty">WordPress was not reachable on the last build, so there is nothing to show yet.</p></div>';
+    var live = blog.published.slice(), sched = blog.scheduled.slice(), drafts = blog.drafts.slice();
+    sched.sort(function (a, b) { return a.date.localeCompare(b.date); });
+    live.sort(function (a, b) { return b.date.localeCompare(a.date); });
+
+    // Gap since the last thing that actually went out, which is the number
+    // that matters when the month's published count is still zero.
+    var all = blog.recent.concat(live).filter(function (p) { return p.date <= ymd(today); });
+    all.sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var lastOut = all.length ? all[all.length - 1] : null;
+    var gap = lastOut ? -daysUntil(lastOut.date) : null;
+    var next = sched.filter(function (p) { return daysUntil(p.date) >= 0; })[0];
+
+    var note = '';
+    if (gap !== null && gap >= 7) {
+      note = '<div class="bnote"><b>' + plural(gap, 'day') + ' since anything went out.</b> ' +
+        'Last live post was &ldquo;' + esc(lastOut.title) + '&rdquo; on ' + longDate(lastOut.date) + '.' +
+        (next ? ' Next one lands ' + longDate(next.date) + '.' : ' Nothing is scheduled.') + '</div>';
+    }
+
+    return '<div class="page">' +
+      '<div class="chead"><p class="cat">' + esc(blog.site) + '</p><h2>The Blog</h2>' +
+        '<p>What went live this month, what is queued, and the day each one lands. Read straight from WordPress every build.</p></div>' +
+      '<div class="counts">' +
+        '<div class="count"><b>' + live.length + '</b>Live in ' + MONTHS[today.getMonth()].slice(0, 3) + '</div>' +
+        '<div class="count c-mine"><b>' + sched.length + '</b>Scheduled</div>' +
+        '<div class="count"><b>' + drafts.length + '</b>Drafts</div>' +
+        '<div class="count"><b>' + (next ? Math.max(0, daysUntil(next.date)) : '&ndash;') + '</b>Days to next</div>' +
+      '</div>' + note +
+      '<section class="wsec"><div class="sh"><span class="num">1</span><h3>The drip</h3>' +
+        '<small>' + (next ? 'Next out ' + longDate(next.date) : 'Nothing queued') + '</small></div>' +
+        calendarsHTML(live, sched) +
+      '</section>' +
+      '<section class="wsec"><div class="sh"><span class="num">2</span><h3>Going out next</h3>' +
+        '<small>' + plural(sched.length, 'post') + ' scheduled</small></div>' +
+        postListHTML(sched, 'scheduled', 'Nothing is scheduled. The drip stops after today.') +
+      '</section>' +
+      '<section class="wsec"><div class="sh"><span class="num">3</span><h3>Done this month</h3>' +
+        '<small>' + MONTHS[today.getMonth()] + '</small></div>' +
+        postListHTML(live, 'published', 'Nothing has published this month yet.') +
+      '</section>' +
+      '<section class="wsec"><div class="sh"><span class="num">4</span><h3>Drafts waiting</h3>' +
+        '<small>' + plural(drafts.length, 'draft') + '</small></div>' +
+        postListHTML(drafts, 'draft', 'No drafts sitting in WordPress.') +
+      '</section>' +
+    '</div>';
+  }
+
   // ---- Agents ----
   function workBanner() {
     if (!work) return '';
@@ -299,8 +467,22 @@
     '</a>';
   }
 
+  function blogBanner() {
+    if (!blog) return '';
+    var sched = blog.scheduled.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var next = sched.filter(function (p) { return daysUntil(p.date) >= 0; })[0];
+    return '<a class="blogbanner" href="#blog">' +
+      '<span class="bbnum"><b>' + blog.published.length + '</b>live in ' + MONTHS[today.getMonth()].slice(0, 3) + '</span>' +
+      '<span class="bbnum"><b>' + sched.length + '</b>scheduled</span>' +
+      '<span class="bbnext">' + (next
+        ? 'Next out <b>' + longDate(next.date) + '</b><small>' + esc(next.title) + '</small>'
+        : 'Nothing scheduled<small>The drip stops after today</small>') + '</span>' +
+      '<span class="bbgo">The blog &rarr;</span>' +
+    '</a>';
+  }
+
   function homeHTML() {
-    return '<div class="page wide">' + workBanner() + '<div class="grid">' + data.agents.map(function (a) {
+    return '<div class="page wide">' + workBanner() + blogBanner() + '<div class="grid">' + data.agents.map(function (a) {
       return '<article class="card" data-agent="' + a.id + '">' +
         '<div class="portrait"><img src="' + a.avatar + '" alt="' + a.name + '"><div class="fade"></div><div class="name">' + a.name + '</div></div>' +
         '<div class="body">' +
@@ -343,6 +525,7 @@
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
     var a = agentById(id), tab = 'agents';
     if (id === 'work' || id.indexOf('work/') === 0 || id.indexOf('team/') === 0) { tab = 'work'; view.innerHTML = workHTML(id); }
+    else if (id === 'blog') { tab = 'blog'; view.innerHTML = blogHTML(); }
     else if (id === 'vendors' || id.indexOf('vendors/') === 0) { tab = 'vendors'; view.innerHTML = vendorsHTML(id.replace(/^vendors\/?/, '')); }
     else view.innerHTML = a ? agentHTML(a) : homeHTML();
     document.querySelectorAll('.topnav a').forEach(function (l) { l.classList.toggle('on', l.getAttribute('data-tab') === tab); });
@@ -365,6 +548,38 @@
     view.querySelectorAll('.row').forEach(function (r) {
       r.querySelector('.rhead').addEventListener('click', function () { r.classList.toggle('open'); });
     });
+    view.querySelectorAll('.checkoff').forEach(function (box) {
+      var btn = box.querySelector('.cobtn'), msg = box.querySelector('.comsg');
+      btn.addEventListener('click', function () { checkOff(box, btn, msg); });
+    });
+  }
+
+  function checkOff(box, btn, msg) {
+    var client = box.getAttribute('data-client'), title = box.getAttribute('data-title');
+    var note = box.querySelector('.conote').value.trim();
+    var key = store('cc_key');
+    if (!key) {
+      key = window.prompt('Passcode for check-offs (asked once on this device):');
+      if (!key) return;
+    }
+    btn.disabled = true; msg.textContent = 'Saving...';
+    fetch('/api/done', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-cc-key': key },
+      body: JSON.stringify({ client: client, title: title, note: note })
+    }).then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.status === 401) { store('cc_key', null); throw new Error('Wrong passcode. Tap Mark done to try again.'); }
+        if (!res.j.ok) throw new Error(res.j.error || 'Could not save.');
+        store('cc_key', key);
+        var p = pending(); p[client + '|' + title] = { date: res.j.date, note: note }; store('cc_done', JSON.stringify(p));
+        work.clients.forEach(function (c) {
+          if (c.name !== client) return;
+          c.items.forEach(function (it) { if (it.title === title) markLocal(it, res.j.date, note); });
+        });
+        render();
+      })
+      .catch(function (e) { btn.disabled = false; msg.textContent = e.message || 'Could not save. Check your connection.'; });
   }
 
   var _g = window.CC_DATA && window.CC_DATA.generated;
