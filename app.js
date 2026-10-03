@@ -407,53 +407,89 @@
       : '<p class="empty">' + empty + '</p>';
   }
 
-  function blogHTML() {
-    if (!blog) return '<div class="page"><p class="empty">WordPress was not reachable on the last build, so there is nothing to show yet.</p></div>';
-    var live = blog.published.slice(), sched = blog.scheduled.slice(), drafts = blog.drafts.slice();
+  // Everything a site's page needs, worked out once so the pills, the banner
+  // and the page itself all quote the same numbers.
+  function blogState(s) {
+    var live = s.published.slice(), sched = s.scheduled.slice(), drafts = s.drafts.slice();
     sched.sort(function (a, b) { return a.date.localeCompare(b.date); });
     live.sort(function (a, b) { return b.date.localeCompare(a.date); });
-
     // Gap since the last thing that actually went out, which is the number
     // that matters when the month's published count is still zero.
-    var all = blog.recent.concat(live).filter(function (p) { return p.date <= ymd(today); });
+    var all = s.recent.concat(live).filter(function (p) { return p.date <= ymd(today); });
     all.sort(function (a, b) { return a.date.localeCompare(b.date); });
-    var lastOut = all.length ? all[all.length - 1] : null;
-    var gap = lastOut ? -daysUntil(lastOut.date) : null;
-    var next = sched.filter(function (p) { return daysUntil(p.date) >= 0; })[0];
+    return {
+      site: s, live: live, sched: sched, drafts: drafts,
+      lastOut: all.length ? all[all.length - 1] : null,
+      next: sched.filter(function (p) { return daysUntil(p.date) >= 0; })[0]
+    };
+  }
+
+  function blogSites() { return (blog && blog.sites) || []; }
+
+  function blogPillsHTML(active) {
+    var sites = blogSites();
+    if (sites.length < 2) return '';
+    return '<nav class="pills">' + sites.map(function (s) {
+      var st = blogState(s);
+      return '<a class="pill' + (s.key === active ? ' on' : '') + '" href="#blog/' + esc(s.key) + '">' +
+        esc(s.short || s.name) + ' <b>' + st.live.length + '</b></a>';
+    }).join('') + '</nav>';
+  }
+
+  function blogPageHTML(s) {
+    var st = blogState(s), live = st.live, sched = st.sched, drafts = st.drafts, next = st.next;
+    var gap = st.lastOut ? -daysUntil(st.lastOut.date) : null;
 
     var note = '';
-    if (gap !== null && gap >= 7) {
+    if (!s.reachable) {
+      note = '<div class="bnote"><b>' + esc(s.host) + ' did not answer on the last build.</b> ' +
+        'These numbers are not current. Nothing is wrong with the schedule itself.</div>';
+    } else if (gap !== null && gap >= 7) {
       note = '<div class="bnote"><b>' + plural(gap, 'day') + ' since anything went out.</b> ' +
-        'Last live post was &ldquo;' + esc(lastOut.title) + '&rdquo; on ' + longDate(lastOut.date) + '.' +
+        'Last live post was &ldquo;' + esc(st.lastOut.title) + '&rdquo; on ' + longDate(st.lastOut.date) + '.' +
         (next ? ' Next one lands ' + longDate(next.date) + '.' : ' Nothing is scheduled.') + '</div>';
     }
+    // A site with no stored credentials can still be read for published posts,
+    // so say which half of the page is blind rather than showing a bare zero.
+    var noAuth = !s.authed ? '<div class="bnote quiet"><b>Queue not readable for this site.</b> ' +
+      'Published posts are public, so the calendar and Done this month are real. The scheduled ' +
+      'queue and drafts need ' + esc(s.host) + '’s WordPress login in the dashboard repo’s ' +
+      'Actions secrets.</div>' : '';
 
     return '<div class="page">' +
-      '<div class="chead"><p class="cat">' + esc(blog.site) + '</p><h2>The Blog</h2>' +
+      '<div class="chead"><p class="cat">' + esc(s.host) + '</p><h2>' + esc(s.name) + '</h2>' +
         '<p>What went live this month, what is queued, and the day each one lands. Read straight from WordPress every build.</p></div>' +
       '<div class="counts">' +
         '<div class="count"><b>' + live.length + '</b>Live in ' + MONTHS[today.getMonth()].slice(0, 3) + '</div>' +
-        '<div class="count c-mine"><b>' + sched.length + '</b>Scheduled</div>' +
-        '<div class="count"><b>' + drafts.length + '</b>Drafts</div>' +
+        '<div class="count c-mine"><b>' + (s.authed ? sched.length : '&ndash;') + '</b>Scheduled</div>' +
+        '<div class="count"><b>' + (s.authed ? drafts.length : '&ndash;') + '</b>Drafts</div>' +
         '<div class="count"><b>' + (next ? Math.max(0, daysUntil(next.date)) : '&ndash;') + '</b>Days to next</div>' +
-      '</div>' + note +
+      '</div>' + note + noAuth +
       '<section class="wsec"><div class="sh"><span class="num">1</span><h3>The drip</h3>' +
-        '<small>' + (next ? 'Next out ' + longDate(next.date) : 'Nothing queued') + '</small></div>' +
+        '<small>' + (next ? 'Next out ' + longDate(next.date) : s.authed ? 'Nothing queued' : 'Published only') + '</small></div>' +
         calendarsHTML(live, sched) +
       '</section>' +
-      '<section class="wsec"><div class="sh"><span class="num">2</span><h3>Going out next</h3>' +
+      (s.authed ? '<section class="wsec"><div class="sh"><span class="num">2</span><h3>Going out next</h3>' +
         '<small>' + plural(sched.length, 'post') + ' scheduled</small></div>' +
         postListHTML(sched, 'scheduled', 'Nothing is scheduled. The drip stops after today.') +
-      '</section>' +
-      '<section class="wsec"><div class="sh"><span class="num">3</span><h3>Done this month</h3>' +
+      '</section>' : '') +
+      '<section class="wsec"><div class="sh"><span class="num">' + (s.authed ? 3 : 2) + '</span><h3>Done this month</h3>' +
         '<small>' + MONTHS[today.getMonth()] + '</small></div>' +
         postListHTML(live, 'published', 'Nothing has published this month yet.') +
       '</section>' +
-      '<section class="wsec"><div class="sh"><span class="num">4</span><h3>Drafts waiting</h3>' +
+      (s.authed ? '<section class="wsec"><div class="sh"><span class="num">4</span><h3>Drafts waiting</h3>' +
         '<small>' + plural(drafts.length, 'draft') + '</small></div>' +
         postListHTML(drafts, 'draft', 'No drafts sitting in WordPress.') +
-      '</section>' +
+      '</section>' : '') +
     '</div>';
+  }
+
+  function blogHTML(sub) {
+    var sites = blogSites();
+    if (!sites.length) return '<div class="page"><p class="empty">WordPress was not reachable on the last build, so there is nothing to show yet.</p></div>';
+    var key = sub.replace(/^blog\/?/, '');
+    var s = sites.filter(function (x) { return x.key === key; })[0] || sites[0];
+    return blogPillsHTML(s.key) + blogPageHTML(s);
   }
 
   // ---- Agents ----
@@ -467,18 +503,25 @@
     '</a>';
   }
 
+  // One line per blog, so the agents page answers "is anything going out this
+  // week, anywhere" without opening a tab.
   function blogBanner() {
-    if (!blog) return '';
-    var sched = blog.scheduled.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
-    var next = sched.filter(function (p) { return daysUntil(p.date) >= 0; })[0];
-    return '<a class="blogbanner" href="#blog">' +
-      '<span class="bbnum"><b>' + blog.published.length + '</b>live in ' + MONTHS[today.getMonth()].slice(0, 3) + '</span>' +
-      '<span class="bbnum"><b>' + sched.length + '</b>scheduled</span>' +
-      '<span class="bbnext">' + (next
-        ? 'Next out <b>' + longDate(next.date) + '</b><small>' + esc(next.title) + '</small>'
-        : 'Nothing scheduled<small>The drip stops after today</small>') + '</span>' +
-      '<span class="bbgo">The blog &rarr;</span>' +
-    '</a>';
+    var sites = blogSites();
+    if (!sites.length) return '';
+    return '<div class="blogbanner"><div class="bbhead"><span class="bbtitle">The <em>Blogs</em></span>' +
+      '<a class="bbgo" href="#blog">Open the schedule &rarr;</a></div>' +
+      sites.map(function (s) {
+        var st = blogState(s), next = st.next;
+        return '<a class="bbrow" href="#blog/' + esc(s.key) + '">' +
+          '<span class="bbname">' + esc(s.short || s.name) + '</span>' +
+          '<span class="bbnum"><b>' + st.live.length + '</b>live in ' + MONTHS[today.getMonth()].slice(0, 3) + '</span>' +
+          '<span class="bbnum"><b>' + (s.authed ? st.sched.length : '&ndash;') + '</b>queued</span>' +
+          '<span class="bbnext">' + (next
+            ? 'Next out <b>' + longDate(next.date) + '</b><small>' + esc(next.title) + '</small>'
+            : s.authed ? 'Nothing scheduled<small>The drip stops after today</small>'
+                       : 'Queue not readable<small>Needs this site’s WordPress login</small>') + '</span>' +
+        '</a>';
+      }).join('') + '</div>';
   }
 
   function homeHTML() {
@@ -525,7 +568,7 @@
     var id = (location.hash || '').replace(/^#\/?/, '').trim();
     var a = agentById(id), tab = 'agents';
     if (id === 'work' || id.indexOf('work/') === 0 || id.indexOf('team/') === 0) { tab = 'work'; view.innerHTML = workHTML(id); }
-    else if (id === 'blog') { tab = 'blog'; view.innerHTML = blogHTML(); }
+    else if (id === 'blog' || id.indexOf('blog/') === 0) { tab = 'blog'; view.innerHTML = blogHTML(id); }
     else if (id === 'vendors' || id.indexOf('vendors/') === 0) { tab = 'vendors'; view.innerHTML = vendorsHTML(id.replace(/^vendors\/?/, '')); }
     else view.innerHTML = a ? agentHTML(a) : homeHTML();
     document.querySelectorAll('.topnav a').forEach(function (l) { l.classList.toggle('on', l.getAttribute('data-tab') === tab); });
