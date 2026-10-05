@@ -1,0 +1,4 @@
+# Client report PDFs copied here only so Leslie can open them from the app.
+# The reports themselves live in queen-lml/gsc-monitoring-agent, which is where
+# they are built and committed. This hub repo holds the dashboard, not deliverables.
+reports-preview/
