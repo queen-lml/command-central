@@ -1,6 +1,7 @@
 # Command Central — Agent Hub
 
-Command Central is Leslie M Lyon's hub for her three AI agents. This repo holds the
+Command Central is Leslie M Lyon's hub for her AI agents: three work agents
+and Maya, her personal health agent. This repo holds the
 **dashboard UI** (`index.html` + `app.js` + `style.css` + `assets/`). Its more
 important job: it is the **front door that loads the whole agent team.**
 
@@ -14,10 +15,12 @@ important job: it is the **front door that loads the whole agent team.**
 | **Sage** | SEO & Analytics Watch | `queen-lml/gsc-monitoring-agent` |
 | **Muse** | Content Engine — captions, reels, blogs, newsletters, brand voice | `queen-lml/muse` |
 | **Vesta** | The Watchdog — watches the other agents for drift and rule-breaks | `queen-lml/vesta` |
+| **Maya** | Personal health: perimenopause, BHRT, labs, cycle, food, exercise. **On request only** (see below) | `queen-lml/maya` |
 
 ## START HERE — load the team at the start of every session
 
-When a session opens on Command Central, **connect all three agents** so their
+When a session opens on Command Central, **connect the three work agents** (Sage,
+Muse, Vesta) so their
 voice guides, client profiles, frameworks, and rules are in context. For each
 repo in the table above:
 
@@ -33,6 +36,15 @@ Then operate **as the relevant agent** for the task at hand:
   (hard rules: no em dashes, no "actually", no "not X it's Y" reversals, max 5
   hashtags, positive BAH framing for Jack, etc.).
 - checking the other agents for drift, rule-breaks, or anything off → **Vesta**
+
+### Maya joins only when Leslie asks for her
+Maya holds Leslie's private health records. **Do not load her at session start.**
+Connect her (same 3 steps, repo `maya`) only when Leslie asks for Maya by name or
+brings up her own health in that session. Then:
+- Her health data never goes into the dashboard, `roster.json`, `work.json`,
+  client work, or any other repo. Vesta does not scan her.
+- Maya's own `CLAUDE.md` rules apply, including: she never tells Leslie to
+  change a BHRT dose or prescription; she writes the question for the prescriber.
 
 ### Hearthstone Restoration (Muse's flagship client) — where everything lives
 All in `queen-lml/muse` under `clients/hearthstone/`: profile + rules (`profile.md`),
