@@ -533,7 +533,7 @@
           '<p class="tagline">' + a.tagline + '</p>' +
           '<div class="status"><span class="pip"></span> ' + a.status + '</div>' +
           '<div class="opencli">View ' + a.clients.length + ' ' + a.subjectsLabel.toLowerCase() + ' &rarr;</div>' +
-          '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' +
+          (a.voice ? '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' : '') +
         '</div>' +
       '</article>';
     }).join('') + '</div></div>';
@@ -547,7 +547,7 @@
           '<div class="role">' + a.role + '</div>' +
           '<h2>' + a.name + '</h2>' +
           '<p class="tagline">' + a.tagline + '</p>' +
-          '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' +
+          (a.voice ? '<button class="voice" data-voice="' + a.voice + '"><span class="tri"></span> Talk with ' + a.name + '</button>' : '') +
         '</div>' +
       '</div>' +
       '<section class="wsec"><div class="sh"><span class="num">' + a.clients.length + '</span><h3>' + a.subjectsLabel + '</h3></div>' +
