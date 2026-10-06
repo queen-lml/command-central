@@ -8,7 +8,7 @@ important job: it is the **front door that loads the whole agent team.**
 > ⚠️ The live site is **not deployed from this repo.** See "How the dashboard
 > actually gets built" below before changing anything about the dashboard.
 
-## The three agents (each lives in its own private repo)
+## The agents (each lives in its own private repo)
 
 | Agent | Role | Repo |
 |-------|------|------|
@@ -41,6 +41,8 @@ Then operate **as the relevant agent** for the task at hand:
 Maya holds Leslie's private health records. **Do not load her at session start.**
 Connect her (same 3 steps, repo `maya`) only when Leslie asks for Maya by name or
 brings up her own health in that session. Then:
+- Her dashboard card is a portrait (`assets/maya.png`) and role only, built in
+  `gsc-monitoring-agent/build_dashboard.py`.
 - Her health data never goes into the dashboard, `roster.json`, `work.json`,
   client work, or any other repo. Vesta does not scan her.
 - Maya's own `CLAUDE.md` rules apply, including: she never tells Leslie to

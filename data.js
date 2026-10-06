@@ -49,7 +49,7 @@ window.CC_DATA = {
           ]
         },
         {
-          "name": "Roatan.net — Steve Hasz",
+          "name": "Roatan.net \u2014 Steve Hasz",
           "status": "GA4 live",
           "ok": true,
           "summary": "SEO + analytics monitoring, last 30 days.",
@@ -71,7 +71,7 @@ window.CC_DATA = {
           ]
         },
         {
-          "name": "Push The Goal — Soccer Training",
+          "name": "Push The Goal \u2014 Soccer Training",
           "status": "GA4 live",
           "ok": true,
           "summary": "SEO + analytics monitoring, last 30 days.",
@@ -120,7 +120,7 @@ window.CC_DATA = {
           ]
         },
         {
-          "name": "Push The Goal — Soccer Training",
+          "name": "Push The Goal \u2014 Soccer Training",
           "status": "Active",
           "ok": true,
           "summary": "Izi Murray's soccer recruitment coaching, Murfreesboro TN. Blog library only, no social captions.",
@@ -136,7 +136,7 @@ window.CC_DATA = {
           "name": "Roatan Life Real Estate",
           "status": "Active",
           "ok": true,
-          "summary": "Steve Hasz's brokerage in Roatán. Blog engine live, site rebuild underway.",
+          "summary": "Steve Hasz's brokerage in Roat\u00e1n. Blog engine live, site rebuild underway.",
           "details": [
             "roatanlife.com: WordPress blog + SEO plan built",
             "Full site rebuild in progress; Leslie's SEO assessment is step one",
@@ -162,10 +162,10 @@ window.CC_DATA = {
           "name": "IC Solutions (ICS)",
           "status": "Onboarded",
           "ok": true,
-          "summary": "Roatán design-build firm: homes, remodels, commercial, boutique hotels, pools. Premium, trust-first voice.",
+          "summary": "Roat\u00e1n design-build firm: homes, remodels, commercial, boutique hotels, pools. Premium, trust-first voice.",
           "details": [
             "Profile + raw intake captured from onboarding call",
-            "ICP: 45-65 US/Canada couples building in Roatán; trust is the story",
+            "ICP: 45-65 US/Canada couples building in Roat\u00e1n; trust is the story",
             "Voice: calm, premium, transparent (master-builder guide)",
             "icsolutionsroa.com live; blog comes later",
             "Next: video footage, brand kit, confirm offer + DM keywords"
@@ -175,10 +175,10 @@ window.CC_DATA = {
           "name": "The Real State of Roatan",
           "status": "Onboarded",
           "ok": true,
-          "summary": "Cristian Lopez's Roatán real estate arm (sister to ICS). Educational, data-driven voice.",
+          "summary": "Cristian Lopez's Roat\u00e1n real estate arm (sister to ICS). Educational, data-driven voice.",
           "details": [
             "Profile + raw intake captured (two intake forms)",
-            "ICP: 30-65 investors + visionaries, not retirees; Roatán vs Costa Rica",
+            "ICP: 30-65 investors + visionaries, not retirees; Roat\u00e1n vs Costa Rica",
             "Name is wordplay: the real STATE of the island (facts, data)",
             "Social-first for now, no blog in scope",
             "Next: IG handle, brand kit, real data sources, CTA route"
@@ -215,6 +215,28 @@ window.CC_DATA = {
             "Sage, Muse, Vesta + Command Central all backed up",
             "Drift is visible in version history",
             "Local Mac paths in registry.json are legacy; the cloud scan is the live one"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "maya",
+      "name": "Maya",
+      "role": "Personal Health",
+      "tagline": "She looks after you. Sleep, hormones, labs and how you feel, kept private.",
+      "avatar": "assets/maya.png",
+      "voice": "",
+      "status": "Private, joins when you ask",
+      "subjectsLabel": "Notes",
+      "clients": [
+        {
+          "name": "Private by design",
+          "summary": "Her records live only in her own repo",
+          "status": "Private",
+          "ok": true,
+          "details": [
+            "Nothing about your health shows on this dashboard.",
+            "Ask for Maya by name in any Command Central session."
           ]
         }
       ]
