@@ -134,3 +134,31 @@ Leslie's Mac  <-->  GitHub (muse / vesta / gsc-monitoring-agent)  <-->  Cloud se
 
 Edit in a session -> push to the agent's repo -> Leslie pulls on her Mac.
 Edit on the Mac -> push -> next cloud session pulls. Everyone stays matched.
+
+## Codex review before merging
+
+For agent-authored changes in this repository:
+- Work on a branch and open a non-draft pull request when the change is ready.
+  Do not push these changes directly to main or merge immediately after opening.
+- Wait for the authenticated chatgpt-codex-connector[bot] review to complete for
+  the PR's current head commit. A queued review, a reaction alone, or a completed
+  review of an older commit is not sufficient. Read the review findings as well
+  as the completion summary; "Completed" does not mean there were no findings.
+- Address actionable findings and run the relevant checks. If a finding is
+  disputed, explain the evidence and leave the PR open for Leslie's decision.
+- After review fixes or other code changes, request one new review for the
+  latest commit if none starts automatically. A subsequent push must not be assumed to trigger another review.
+- If review is unavailable, fails, or cannot be verified, leave the PR open and
+  report the blocker with its link. Never treat a timeout as approval.
+- Merge only when the current commit has completed review, findings are
+  addressed, required checks pass, and Leslie's task authorizes merging.
+  This rule does not grant new merge, deployment, or publishing permission.
+- Give Leslie the clickable PR link and a brief review/check status. Check
+  review status at sensible intervals rather than repeatedly re-reading the repo.
+
+Existing scheduled automation is unchanged by this instruction; changes to
+its code still follow this process. Preserve all existing requirements for
+Leslie's approval before pushing or publishing. Permission to push immediately
+means pushing to the working branch; it does not bypass review before merging.
+These are agent instructions, not a GitHub-enforced branch protection.
+
