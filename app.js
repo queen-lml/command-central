@@ -441,7 +441,17 @@
     var gap = st.lastOut ? -daysUntil(st.lastOut.date) : null;
 
     var note = '';
-    if (!s.reachable) {
+    // Overdue only exists for a static site: its date passed and the
+    // rebuild that should have published it never ran. On WordPress the
+    // post would simply be late; here it means the scheduler itself is
+    // down, so it outranks every other note on the card.
+    var over = s.overdue || [];
+    if (over.length) {
+      note = '<div class="bnote"><b>' + plural(over.length, 'post') + ' past due and not live.</b> ' +
+        esc(over[0].title) + ' was dated ' + longDate(over[0].date) + '. ' +
+        'The hourly rebuild publishes by date, so this means it has stopped running. ' +
+        'Check the "Deploy www" Action in queen-lml/lesliemlyon.</div>';
+    } else if (!s.reachable) {
       note = '<div class="bnote"><b>' + esc(s.host) + ' did not answer on the last build.</b> ' +
         'These numbers are not current. Nothing is wrong with the schedule itself.</div>';
     } else if (gap !== null && gap >= 7) {
