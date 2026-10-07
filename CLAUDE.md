@@ -66,8 +66,8 @@ The dashboard at **cc-lyon** (Cloudflare Pages) is built and deployed by the
 (`.github/workflows/dashboard.yml`), on a **cron every 6 hours**. That workflow:
 
 1. runs `build_dashboard.py`, which pulls **live** GSC + GA4 per Sage client,
-   live WordPress scheduled/draft counts, live GHL bookings, and Vesta's latest
-   `dashboard/vesta_status.json`,
+   live WordPress scheduled/draft counts for the client blogs, live GHL
+   bookings, and Vesta's latest `dashboard/vesta_status.json`,
 2. writes `dashboard/data.js`,
 3. deploys that repo's `dashboard/` folder to the `cc-lyon` Pages project.
 
@@ -86,6 +86,26 @@ So there is **one deployer**, and it is the Sage repo. Consequences:
   push to main, which overwrote the freshly built site with this repo's stale
   hand-edited `data.js` until the next 6-hour build. That is why the dashboard
   kept showing the wrong clients. Do not put it back on `push`.
+
+## lesliemlyon.com left WordPress (2026-10-07)
+
+Leslie's own site is a static Astro build deployed from
+`queen-lml/lesliemlyon`, not WordPress. Nothing should ask it for
+`/wp-json/`; the domain answers that with the new site's 404 page, which a
+careless reader takes for an empty blog.
+
+- It publishes **by rebuild**. A post dated in the future is left out of the
+  build, and an hourly cron puts it live once its date passes. There is no
+  draft or scheduled state on the server.
+- Its build commits `blog-queue.json`, which is what the dashboard's Blog tab
+  and Muse's daily digest read in place of the REST API. The dashboard needs
+  `LESLIEMLYON_REPO_TOKEN` (fine-grained, that repo, Contents read-only) to
+  see it, since the repo is private.
+- **Overdue** on the Blog card means a post's date passed and the rebuild
+  never ran, so the scheduler is down. That is the one way publishing can now
+  fail quietly.
+- The three client blogs are still WordPress and still watched by
+  `queen-lml/muse`'s `blog-watch.yml`. None of this touches them.
 
 ## Keeping the cloud in sync (source of truth = GitHub)
 
