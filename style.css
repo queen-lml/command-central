@@ -75,6 +75,8 @@ header p.sub {
 
 .portrait { position: relative; aspect-ratio: 4 / 5; overflow: hidden; }
 .portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portrait .noface { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 72px; background: linear-gradient(135deg, #1f2a2b, #3a4a4b); color: #b9c7c9; }
+.agenthero .noface.big { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 56px; background: linear-gradient(135deg, #1f2a2b, #3a4a4b); color: #b9c7c9; flex-shrink: 0; }
 .portrait .fade {
   position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(0,0,0,0) 62%, rgba(31,79,85,0.55) 100%);

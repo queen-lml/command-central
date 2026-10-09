@@ -11,7 +11,7 @@
   function homeHTML() {
     return '<div class="grid">' + data.agents.map(function (a) {
       return '<article class="card" data-agent="' + a.id + '">' +
-        '<div class="portrait"><img src="' + a.avatar + '" alt="' + a.name + '"><div class="fade"></div><div class="name">' + a.name + '</div></div>' +
+        '<div class="portrait">' + (a.avatar ? '<img src="' + a.avatar + '" alt="' + a.name + '">' : '<div class="noface">&#128451;</div>') + '<div class="fade"></div><div class="name">' + a.name + '</div></div>' +
         '<div class="body">' +
           '<div class="role">' + a.role + '</div>' +
           '<p class="tagline">' + a.tagline + '</p>' +
@@ -26,7 +26,7 @@
   function agentHTML(a) {
     return '<a class="back" href="#">&larr; All agents</a>' +
       '<div class="agenthero">' +
-        '<img src="' + a.avatar + '" alt="' + a.name + '">' +
+        (a.avatar ? '<img src="' + a.avatar + '" alt="' + a.name + '">' : '<div class="noface big">&#128451;</div>') +
         '<div class="agentmeta">' +
           '<div class="role">' + a.role + '</div>' +
           '<h2>' + a.name + '</h2>' +
